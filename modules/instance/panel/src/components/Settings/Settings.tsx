@@ -189,6 +189,10 @@ export const Settings: React.FC = () => {
 
       {settings.serverCreationPolicy === 'selected' && <ServerCreators />}
 
+      <ServerFeatures />
+
+      <RawSettings />
+
       <ChangePassphrase />
     </div>
   );
@@ -400,6 +404,321 @@ const ServerCreators: React.FC = () => {
               </div>
             ))}
           </div>
+        )}
+
+        {message && (
+          <div className={`settings__message settings__message--${message.type}`}>
+            {message.text}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** Server Features sub-component — manage server feature flags */
+const ServerFeatures: React.FC = () => {
+  const [features, setFeatures] = useState<
+    Array<{ id: string; serverId: string; serverName: string | null; feature: string; enabled: boolean; createdAt: string }>
+  >([]);
+  const [servers, setServers] = useState<Array<{ id: string; name: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newServerId, setNewServerId] = useState('');
+  const [newFeature, setNewFeature] = useState('');
+  const [newEnabled, setNewEnabled] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [featRes, serverRes] = await Promise.all([
+        panelApi.settings.getServerFeatures(),
+        panelApi.servers.list({ limit: 200 }),
+      ]);
+      setFeatures(featRes.features);
+      setServers(serverRes.servers.map((s: any) => ({ id: s.id, name: s.name })));
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleAdd = async () => {
+    if (!newServerId || !newFeature) return;
+    try {
+      await panelApi.settings.addServerFeature(newServerId, newFeature, newEnabled);
+      setMessage({ type: 'success', text: 'Feature flag added' });
+      setNewServerId('');
+      setNewFeature('');
+      setNewEnabled(true);
+      setShowAdd(false);
+      fetchData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleRemove = async (id: string) => {
+    try {
+      await panelApi.settings.removeServerFeature(id);
+      setMessage({ type: 'success', text: 'Feature flag removed' });
+      fetchData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  if (loading) {
+    return <div className="loading-state"><span className="spinner" /> LOADING</div>;
+  }
+
+  return (
+    <div className="panel">
+      <div className="panel-header settings__panel-header">
+        Server Feature Flags
+        <button type="button" className="btn btn--ghost btn--small" onClick={() => setShowAdd(!showAdd)}>
+          {showAdd ? '✕ CANCEL' : '+ ADD FLAG'}
+        </button>
+      </div>
+      <div className="settings__body">
+        <p className="settings__hint">
+          Feature flags enable or disable specific capabilities per server (e.g. voice, screen-share, threads).
+        </p>
+
+        {showAdd && (
+          <div className="settings__add-form">
+            <div className="settings__field">
+              <label className="settings__label">Server</label>
+              <select value={newServerId} onChange={e => setNewServerId(e.target.value)}>
+                <option value="">Select a server…</option>
+                {servers.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="settings__field">
+              <label className="settings__label">Feature Key</label>
+              <input
+                type="text"
+                value={newFeature}
+                onChange={e => setNewFeature(e.target.value)}
+                placeholder="e.g. voice, threads, screen_share"
+              />
+            </div>
+            <div className="settings__field settings__toggle-field">
+              <label className="settings__label">Enabled</label>
+              <button
+                type="button"
+                className={`settings__toggle ${newEnabled ? 'settings__toggle--on' : ''}`}
+                onClick={() => setNewEnabled(!newEnabled)}
+              >
+                <span className="settings__toggle-knob" />
+                <span className="settings__toggle-label">{newEnabled ? 'ON' : 'OFF'}</span>
+              </button>
+            </div>
+            <div className="settings__actions">
+              <button type="button" className="btn btn--primary btn--small" onClick={handleAdd} disabled={!newServerId || !newFeature}>
+                ADD FEATURE
+              </button>
+            </div>
+          </div>
+        )}
+
+        {features.length === 0 && !showAdd && (
+          <div className="settings__hint">No feature flags configured.</div>
+        )}
+
+        {features.length > 0 && (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Server</th>
+                <th>Feature</th>
+                <th>Enabled</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {features.map(f => (
+                <tr key={f.id}>
+                  <td>{f.serverName || f.serverId}</td>
+                  <td><code>{f.feature}</code></td>
+                  <td><span className={`badge badge--${f.enabled ? 'success' : 'muted'}`}>{f.enabled ? 'ON' : 'OFF'}</span></td>
+                  <td>
+                    <button type="button" className="btn btn--danger btn--small" onClick={() => handleRemove(f.id)}>
+                      DELETE
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {message && (
+          <div className={`settings__message settings__message--${message.type}`}>
+            {message.text}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** Raw Settings sub-component — view/edit all key-value instance settings */
+const RawSettings: React.FC = () => {
+  const [rawSettings, setRawSettings] = useState<Array<{ key: string; value: string; updatedAt: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [newKey, setNewKey] = useState('');
+  const [newValue, setNewValue] = useState('');
+
+  const fetchData = useCallback(async () => {
+    try {
+      const res = await panelApi.settings.getRawSettings();
+      setRawSettings(res.settings);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleSave = async (key: string, value: string) => {
+    try {
+      await panelApi.settings.upsertRawSetting(key, value);
+      setMessage({ type: 'success', text: `Setting "${key}" updated` });
+      setEditingKey(null);
+      fetchData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!newKey) return;
+    try {
+      await panelApi.settings.upsertRawSetting(newKey, newValue);
+      setMessage({ type: 'success', text: `Setting "${newKey}" created` });
+      setNewKey('');
+      setNewValue('');
+      setShowAdd(false);
+      fetchData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleDelete = async (key: string) => {
+    if (!confirm(`Delete setting "${key}"?`)) return;
+    try {
+      await panelApi.settings.deleteRawSetting(key);
+      setMessage({ type: 'success', text: `Setting "${key}" deleted` });
+      fetchData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  };
+
+  if (loading) {
+    return <div className="loading-state"><span className="spinner" /> LOADING</div>;
+  }
+
+  return (
+    <div className="panel">
+      <div className="panel-header settings__panel-header">
+        Raw Instance Settings
+        <button type="button" className="btn btn--ghost btn--small" onClick={() => setShowAdd(!showAdd)}>
+          {showAdd ? '✕ CANCEL' : '+ ADD SETTING'}
+        </button>
+      </div>
+      <div className="settings__body">
+        <p className="settings__hint">
+          Direct access to all key-value instance settings stored in the database.
+          Use caution — these values drive instance behavior.
+        </p>
+
+        {showAdd && (
+          <div className="settings__add-form">
+            <div className="settings__row">
+              <div className="settings__field">
+                <label className="settings__label">Key</label>
+                <input type="text" value={newKey} onChange={e => setNewKey(e.target.value)} placeholder="setting_key" />
+              </div>
+              <div className="settings__field">
+                <label className="settings__label">Value</label>
+                <input type="text" value={newValue} onChange={e => setNewValue(e.target.value)} placeholder="value" />
+              </div>
+            </div>
+            <div className="settings__actions">
+              <button type="button" className="btn btn--primary btn--small" onClick={handleAdd} disabled={!newKey}>
+                ADD SETTING
+              </button>
+            </div>
+          </div>
+        )}
+
+        {rawSettings.length > 0 ? (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Value</th>
+                <th>Updated</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rawSettings.map(s => (
+                <tr key={s.key}>
+                  <td><code>{s.key}</code></td>
+                  <td>
+                    {editingKey === s.key ? (
+                      <div className="settings__inline-edit">
+                        <input
+                          type="text"
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleSave(s.key, editValue);
+                            if (e.key === 'Escape') setEditingKey(null);
+                          }}
+                          autoFocus
+                        />
+                        <button type="button" className="btn btn--primary btn--small" onClick={() => handleSave(s.key, editValue)}>
+                          SAVE
+                        </button>
+                      </div>
+                    ) : (
+                      <span
+                        className="settings__raw-value"
+                        onDoubleClick={() => { setEditingKey(s.key); setEditValue(s.value); }}
+                        title="Double-click to edit"
+                      >
+                        {s.value || <span className="text-muted">(empty)</span>}
+                      </span>
+                    )}
+                  </td>
+                  <td className="text-muted">{s.updatedAt ? new Date(s.updatedAt).toLocaleString() : '—'}</td>
+                  <td>
+                    <button type="button" className="btn btn--danger btn--small" onClick={() => handleDelete(s.key)}>
+                      DELETE
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="settings__hint">No settings stored yet.</div>
         )}
 
         {message && (

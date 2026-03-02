@@ -246,3 +246,85 @@ export type AdminSuspendInput = z.infer<typeof adminSuspendSchema>;
 export type AdminTierOverrideInput = z.infer<typeof adminTierOverrideSchema>;
 export type CreateLobbyInputValidated = z.infer<typeof createLobbySchema>;
 export type ServerFeaturesInput = z.infer<typeof serverFeaturesSchema>;
+
+// ---- Reaction Schemas ----
+
+export const reactionSchema = z.object({
+  emoji: z
+    .string()
+    .min(1, 'Emoji is required')
+    .max(32, 'Emoji must not exceed 32 characters'),
+});
+
+// ---- Thread Schemas ----
+
+export const createThreadSchema = z.object({
+  parentMessageId: z.string().min(1, 'Parent message ID is required'),
+  name: z
+    .string()
+    .min(1, 'Thread name is required')
+    .max(LIMITS.THREAD_NAME_MAX, `Thread name must not exceed ${LIMITS.THREAD_NAME_MAX} characters`),
+});
+
+export const updateThreadSchema = z.object({
+  name: z.string().min(1).max(LIMITS.THREAD_NAME_MAX).optional(),
+  isArchived: z.boolean().optional(),
+  isLocked: z.boolean().optional(),
+});
+
+// ---- Friend Schemas ----
+
+export const friendRequestSchema = z.object({
+  recipientUsername: z.string().min(1, 'Username is required'),
+  message: z.string().max(200).optional(),
+});
+
+// ---- Ephemeral Message Schemas ----
+
+export const ephemeralMessageSchema = z.object({
+  content: z
+    .string()
+    .min(1, 'Message cannot be empty')
+    .max(LIMITS.MESSAGE_MAX, `Message must not exceed ${LIMITS.MESSAGE_MAX} characters`),
+  ttlSeconds: z
+    .number()
+    .min(LIMITS.EPHEMERAL_TTL_MIN, `Minimum TTL is ${LIMITS.EPHEMERAL_TTL_MIN} seconds`)
+    .max(LIMITS.EPHEMERAL_TTL_MAX, `Maximum TTL is ${LIMITS.EPHEMERAL_TTL_MAX / 86400} days`),
+  encrypted: z.boolean().optional(),
+  replyToId: z.string().optional(),
+});
+
+// ---- Scheduled Message Schemas ----
+
+export const scheduledMessageSchema = z.object({
+  content: z
+    .string()
+    .min(1, 'Message cannot be empty')
+    .max(LIMITS.MESSAGE_MAX, `Message must not exceed ${LIMITS.MESSAGE_MAX} characters`),
+  scheduledFor: z
+    .string()
+    .datetime('Must be a valid ISO-8601 datetime'),
+  encrypted: z.boolean().optional(),
+  replyToId: z.string().optional(),
+});
+
+export const updateScheduledMessageSchema = z.object({
+  content: z.string().min(1).max(LIMITS.MESSAGE_MAX).optional(),
+  scheduledFor: z.string().datetime().optional(),
+});
+
+// ---- Encrypted Channel Schemas ----
+
+export const channelKeyRegistrationSchema = z.object({
+  publicKey: z.string().min(1, 'Public key is required'),
+});
+
+// ---- Type exports from new schemas ----
+export type ReactionInput = z.infer<typeof reactionSchema>;
+export type CreateThreadInputValidated = z.infer<typeof createThreadSchema>;
+export type UpdateThreadInputValidated = z.infer<typeof updateThreadSchema>;
+export type FriendRequestInput = z.infer<typeof friendRequestSchema>;
+export type EphemeralMessageInput = z.infer<typeof ephemeralMessageSchema>;
+export type ScheduledMessageInput = z.infer<typeof scheduledMessageSchema>;
+export type UpdateScheduledMessageInput = z.infer<typeof updateScheduledMessageSchema>;
+export type ChannelKeyRegistrationInput = z.infer<typeof channelKeyRegistrationSchema>;

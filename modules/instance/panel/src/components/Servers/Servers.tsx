@@ -11,6 +11,15 @@ export const Servers: React.FC = () => {
   const viewServer = usePanelUIStore((s) => s.viewServer);
   const showConfirm = usePanelUIStore((s) => s.showConfirmDialog);
 
+  // Create server state
+  const [showCreate, setShowCreate] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createOwnerId, setCreateOwnerId] = useState('');
+  const [createMaxMembers, setCreateMaxMembers] = useState(100);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
   const fetchServers = useCallback(async (page = 1) => {
     setLoading(true);
     try {
@@ -36,6 +45,33 @@ export const Servers: React.FC = () => {
     });
   };
 
+  const handleCreate = async () => {
+    setCreateError(null);
+    if (!createName.trim()) { setCreateError('Server name is required'); return; }
+    if (!createOwnerId.trim()) { setCreateError('Owner user ID is required'); return; }
+
+    setCreating(true);
+    try {
+      const result = await panelApi.servers.create({
+        name: createName.trim(),
+        description: createDescription.trim() || undefined,
+        ownerId: createOwnerId.trim(),
+        maxMembers: createMaxMembers,
+      });
+      setShowCreate(false);
+      setCreateName('');
+      setCreateDescription('');
+      setCreateOwnerId('');
+      setCreateMaxMembers(100);
+      fetchServers(1);
+      // Navigate to the newly created server
+      viewServer(result.serverId);
+    } catch (err: any) {
+      setCreateError(err.message || 'Failed to create server');
+    }
+    setCreating(false);
+  };
+
   return (
     <div className="servers-view">
       <div className="servers-view__toolbar">
@@ -48,7 +84,42 @@ export const Servers: React.FC = () => {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <button className="btn btn--sm btn--primary" onClick={() => setShowCreate(!showCreate)}>
+          {showCreate ? 'CANCEL' : '+ CREATE SERVER'}
+        </button>
       </div>
+
+      {/* Create Server Form */}
+      {showCreate && (
+        <div className="servers-view__create panel">
+          <div className="panel-header">CREATE NEW SERVER</div>
+          <div className="servers-view__create-fields">
+            <div className="servers-view__field">
+              <label className="servers-view__field-label">Name *</label>
+              <input type="text" value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="Server name" />
+            </div>
+            <div className="servers-view__field">
+              <label className="servers-view__field-label">Owner User ID *</label>
+              <input type="text" value={createOwnerId} onChange={(e) => setCreateOwnerId(e.target.value)} placeholder="User ID of the server owner" />
+            </div>
+            <div className="servers-view__field">
+              <label className="servers-view__field-label">Description</label>
+              <input type="text" value={createDescription} onChange={(e) => setCreateDescription(e.target.value)} placeholder="Optional description" />
+            </div>
+            <div className="servers-view__field">
+              <label className="servers-view__field-label">Max Members</label>
+              <input type="number" value={createMaxMembers} onChange={(e) => setCreateMaxMembers(parseInt(e.target.value) || 100)} min={1} />
+            </div>
+          </div>
+          {createError && <div className="servers-view__error">{createError}</div>}
+          <div className="servers-view__create-actions">
+            <button className="btn btn--sm btn--ghost" onClick={() => setShowCreate(false)}>CANCEL</button>
+            <button className="btn btn--sm btn--primary" onClick={handleCreate} disabled={creating}>
+              {creating ? 'CREATING…' : 'CREATE'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="loading-state"><span className="spinner" /> LOADING SERVERS</div>

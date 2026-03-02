@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type ViewMode = 'server' | 'dm' | 'discovery' | 'settings'
+export type ViewMode = 'server' | 'dm' | 'discovery' | 'settings' | 'connections'
 
 interface UIState {
   viewMode: ViewMode

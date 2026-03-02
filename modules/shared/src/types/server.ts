@@ -42,9 +42,11 @@ export interface Channel {
   expiresWhenEmpty: boolean;
   hasPassword: boolean;
   createdAt: string;
+  isEncrypted: boolean;
+  ephemeralDefault: number | null;
 }
 
-export type ChannelType = 'text' | 'voice';
+export type ChannelType = 'text' | 'voice' | 'thread';
 
 /** Server feature toggles (per-server settings) */
 export interface ServerFeatures {
@@ -131,6 +133,8 @@ export interface RolePermissions {
   useVAD: boolean;
   pinMessages: boolean;
   mentionEveryone: boolean;
+  manageThreads: boolean;
+  useReactions: boolean;
 }
 
 /** Default permissions for new members */
@@ -151,6 +155,8 @@ export const DEFAULT_PERMISSIONS: RolePermissions = {
   useVAD: true,
   pinMessages: false,
   mentionEveryone: false,
+  manageThreads: false,
+  useReactions: true,
 };
 
 // ============================================================

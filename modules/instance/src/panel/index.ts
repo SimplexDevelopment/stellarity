@@ -13,6 +13,7 @@
  *   /panel/api/moderation   — moderation oversight
  *   /panel/api/metrics      — metrics & monitoring
  *   /panel/api/audit-logs   — audit log viewer
+ *   /panel/api/database     — database browser & editor
  *   /*                      — static SPA files (panel UI)
  */
 import express from 'express';
@@ -35,6 +36,7 @@ import membersRoutes from './routes/members.routes.js';
 import moderationRoutes from './routes/moderation.routes.js';
 import metricsRoutes from './routes/metrics.routes.js';
 import auditRoutes from './routes/audit.routes.js';
+import databaseRoutes from './routes/database.routes.js';
 
 let panelServer: http.Server | null = null;
 
@@ -95,6 +97,7 @@ export async function startPanelServer(): Promise<http.Server | null> {
   app.use('/panel/api/moderation', panelAuth, moderationRoutes);
   app.use('/panel/api/metrics', panelAuth, metricsRoutes);
   app.use('/panel/api/audit-logs', panelAuth, auditRoutes);
+  app.use('/panel/api/database', panelAuth, databaseRoutes);
 
   // Panel health check (no auth)
   app.get('/panel/api/health', (req, res) => {

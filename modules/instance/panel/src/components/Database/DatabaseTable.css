@@ -1,0 +1,188 @@
+.db-table-view {
+  animation: fadeIn 300ms ease;
+}
+
+.db-table-view__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.db-table-view__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-accent);
+  margin: 0;
+  letter-spacing: var(--tracking-wide);
+}
+
+.db-table-view__count {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  letter-spacing: var(--tracking-wide);
+}
+
+.db-table-view__spacer {
+  flex: 1;
+}
+
+.db-table-view__toolbar .search-bar {
+  max-width: 300px;
+}
+
+.db-table-view__error {
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  background: rgba(232, 64, 87, 0.08);
+  border: 1px solid rgba(232, 64, 87, 0.2);
+  border-radius: var(--radius-md);
+}
+
+/* ── Table Wrapper ─────────────────────────────────────── */
+.db-table-view__table-wrapper {
+  overflow: hidden;
+}
+
+.db-table-view__scroll {
+  overflow-x: auto;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.db-table-view__scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.db-table-view__scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.db-table-view__scroll::-webkit-scrollbar-thumb {
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+}
+
+.db-table-view__table {
+  min-width: max-content;
+}
+
+.db-table-view__th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.db-table-view__th:hover {
+  color: var(--color-accent-bright);
+}
+
+/* ── Cell styles ───────────────────────────────────────── */
+.db-table-view__cell {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.db-table-view__cell--editable {
+  cursor: pointer;
+}
+.db-table-view__cell--editable:hover {
+  outline: 1px dashed var(--color-border);
+  outline-offset: -2px;
+}
+
+.db-table-view__cell--null .db-table-view__cell-value {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.db-table-view__cell-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.db-table-view__edit-input {
+  width: 100%;
+  padding: var(--space-1) var(--space-2) !important;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs) !important;
+  margin: -4px 0;
+  background: var(--color-input-bg) !important;
+  border: 1px solid var(--color-accent) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* ── Add Row Form ──────────────────────────────────────── */
+.db-table-view__add-row {
+  margin-bottom: var(--space-4);
+}
+
+.db-table-view__add-row .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.db-table-view__add-row .panel-header h4 {
+  margin: 0;
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-accent);
+}
+
+.db-table-view__add-row-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.db-table-view__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.db-table-view__field-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-secondary);
+}
+
+.db-table-view__field-type {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.db-table-view__field-required {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.db-table-view__add-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-panel-border);
+}
+
+/* ── Hint ──────────────────────────────────────────────── */
+.db-table-view__hint {
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  letter-spacing: var(--tracking-wide);
+  text-align: center;
+}

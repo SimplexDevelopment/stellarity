@@ -45,8 +45,20 @@ export const config = {
 
   // Encryption (instance-local for message encryption)
   encryption: {
-    key: process.env.ENCRYPTION_KEY || 'default-32-byte-key-for-dev-only!',
-    voiceKey: process.env.VOICE_ENCRYPTION_KEY || 'voice-32-byte-key-for-dev-only!!',
+    key: (() => {
+      const key = process.env.ENCRYPTION_KEY;
+      if (!key && process.env.NODE_ENV === 'production') {
+        throw new Error('ENCRYPTION_KEY must be set in production');
+      }
+      return key || 'default-32-byte-key-for-dev-only!';
+    })(),
+    voiceKey: (() => {
+      const key = process.env.VOICE_ENCRYPTION_KEY;
+      if (!key && process.env.NODE_ENV === 'production') {
+        throw new Error('VOICE_ENCRYPTION_KEY must be set in production');
+      }
+      return key || 'voice-32-byte-key-for-dev-only!!';
+    })(),
   },
 
   // CORS
@@ -74,3 +86,32 @@ export const config = {
     sessionDuration: parseInt(process.env.PANEL_SESSION_DURATION || '7200', 10), // 2 hours in seconds
   },
 };
+
+/** Validate critical config values at startup. Throws on invalid config. */
+export function validateConfig(): void {
+  const errors: string[] = [];
+
+  if (config.port < 1 || config.port > 65535 || isNaN(config.port)) {
+    errors.push(`Invalid PORT: ${config.port}`);
+  }
+
+  if (!config.isDev) {
+    if (config.encryption.key === 'default-32-byte-key-for-dev-only!') {
+      errors.push('ENCRYPTION_KEY must be changed from default in production');
+    }
+    if (config.encryption.voiceKey === 'voice-32-byte-key-for-dev-only!!') {
+      errors.push('VOICE_ENCRYPTION_KEY must be changed from default in production');
+    }
+    if (!config.central.url || config.central.url === 'https://api.stellarity.app') {
+      errors.push('CENTRAL_SERVER_URL should be explicitly set in production');
+    }
+  }
+
+  if (config.voice.maxUsersPerChannel < 1 || config.voice.maxUsersPerChannel > 1000) {
+    errors.push(`Invalid VOICE_MAX_USERS_PER_CHANNEL: ${config.voice.maxUsersPerChannel}`);
+  }
+
+  if (errors.length > 0) {
+    throw new Error(`Configuration validation failed:\n  - ${errors.join('\n  - ')}`);
+  }
+}

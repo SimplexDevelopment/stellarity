@@ -10,6 +10,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { verifyAccessToken } from '../config/keys.js';
 import { dmService } from '../services/dm.service.js';
+import { friendService } from '../services/friend.service.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { query } from '../database/postgres.js';
@@ -76,8 +77,11 @@ export function initializeCentralSocket(httpServer: HttpServer): SocketIOServer 
     // Update user status in DB
     updateUserStatus(userId, 'online');
 
-    // Notify friends/contacts that user is online
-    socket.broadcast.emit('user:status', { userId, status: 'online' });
+    // Join personal room so friends can target events at us
+    socket.join(`user:${userId}`);
+
+    // Notify only friends that user is online
+    broadcastStatusToFriends(userId, 'online');
 
     // Deliver pending DMs on connect
     deliverPendingDMs(socket, userId);
@@ -129,7 +133,121 @@ export function initializeCentralSocket(httpServer: HttpServer): SocketIOServer 
     socket.on('presence:update', async (data: { status: 'online' | 'idle' | 'dnd' }) => {
       if (['online', 'idle', 'dnd'].includes(data.status)) {
         await updateUserStatus(userId, data.status);
-        socket.broadcast.emit('user:status', { userId, status: data.status });
+        broadcastStatusToFriends(userId, data.status);
+      }
+    });
+
+    // ── Friend Events ────────────────────────────────────────────────
+
+    /** Send a friend request */
+    socket.on('friend:request', async (data: { username: string; message?: string }, callback?: (result: any) => void) => {
+      try {
+        const friendship = await friendService.sendRequest(userId, data.username, data.message);
+
+        // Notify the recipient in real-time
+        const recipientSockets = onlineUsers.get(friendship.recipientId);
+        if (recipientSockets) {
+          // Look up requester info
+          const requesterResult = await query(
+            'SELECT username, display_name, avatar_url FROM users WHERE id = $1',
+            [userId]
+          );
+          const requester = requesterResult.rows[0];
+
+          for (const socketId of recipientSockets) {
+            io.to(socketId).emit('friend:request-received', {
+              friendshipId: friendship.id,
+              userId,
+              username: requester?.username || username,
+              displayName: requester?.display_name || null,
+              avatarUrl: requester?.avatar_url || null,
+              message: data.message || null,
+              createdAt: friendship.createdAt,
+            });
+          }
+        }
+
+        if (typeof callback === 'function') callback({ success: true, friendship });
+      } catch (error: any) {
+        if (typeof callback === 'function') callback({ success: false, error: error.message });
+      }
+    });
+
+    /** Accept a friend request */
+    socket.on('friend:accept', async (data: { friendshipId: string }, callback?: (result: any) => void) => {
+      try {
+        const friendship = await friendService.acceptRequest(data.friendshipId, userId);
+
+        // Notify the original requester
+        const requesterSockets = onlineUsers.get(friendship.requesterId);
+        if (requesterSockets) {
+          const accepterResult = await query(
+            'SELECT username, display_name, avatar_url FROM users WHERE id = $1',
+            [userId]
+          );
+          const accepter = accepterResult.rows[0];
+
+          for (const socketId of requesterSockets) {
+            io.to(socketId).emit('friend:accepted', {
+              friendshipId: friendship.id,
+              userId,
+              username: accepter?.username || username,
+              displayName: accepter?.display_name || null,
+              avatarUrl: accepter?.avatar_url || null,
+            });
+          }
+        }
+
+        if (typeof callback === 'function') callback({ success: true, friendship });
+      } catch (error: any) {
+        if (typeof callback === 'function') callback({ success: false, error: error.message });
+      }
+    });
+
+    /** Reject a friend request */
+    socket.on('friend:reject', async (data: { friendshipId: string }, callback?: (result: any) => void) => {
+      try {
+        const rejected = await friendService.rejectRequest(data.friendshipId, userId);
+        if (typeof callback === 'function') callback({ success: rejected });
+      } catch (error: any) {
+        if (typeof callback === 'function') callback({ success: false, error: error.message });
+      }
+    });
+
+    /** Remove a friend */
+    socket.on('friend:remove', async (data: { friendshipId: string }, callback?: (result: any) => void) => {
+      try {
+        const removed = await friendService.removeFriend(data.friendshipId, userId);
+
+        if (removed) {
+          // We don't know the other user's ID from just the friendshipId,
+          // but the client can handle this via their friend list refresh
+          socket.emit('friend:removed', { friendshipId: data.friendshipId });
+        }
+
+        if (typeof callback === 'function') callback({ success: removed });
+      } catch (error: any) {
+        if (typeof callback === 'function') callback({ success: false, error: error.message });
+      }
+    });
+
+    /** Block a user */
+    socket.on('friend:block', async (data: { userId: string }, callback?: (result: any) => void) => {
+      try {
+        await friendService.blockUser(userId, data.userId);
+        if (typeof callback === 'function') callback({ success: true });
+      } catch (error: any) {
+        if (typeof callback === 'function') callback({ success: false, error: error.message });
+      }
+    });
+
+    /** Unblock a user */
+    socket.on('friend:unblock', async (data: { userId: string }, callback?: (result: any) => void) => {
+      try {
+        await friendService.unblockUser(userId, data.userId);
+        if (typeof callback === 'function') callback({ success: true });
+      } catch (error: any) {
+        if (typeof callback === 'function') callback({ success: false, error: error.message });
       }
     });
 
@@ -144,7 +262,7 @@ export function initializeCentralSocket(httpServer: HttpServer): SocketIOServer 
         if (userSockets.size === 0) {
           onlineUsers.delete(userId);
           updateUserStatus(userId, 'offline');
-          socket.broadcast.emit('user:status', { userId, status: 'offline' });
+          broadcastStatusToFriends(userId, 'offline');
         }
       }
     });
@@ -163,6 +281,18 @@ async function updateUserStatus(userId: string, status: string): Promise<void> {
     );
   } catch (error) {
     logger.error(`Failed to update user status: ${userId}`, error);
+  }
+}
+
+/** Broadcast a status update only to the user's accepted friends */
+async function broadcastStatusToFriends(userId: string, status: string): Promise<void> {
+  try {
+    const friendIds = await friendService.getFriendIds(userId);
+    for (const friendId of friendIds) {
+      io.to(`user:${friendId}`).emit('user:status', { userId, status });
+    }
+  } catch (error) {
+    logger.error(`Failed to broadcast status to friends: ${userId}`, error);
   }
 }
 

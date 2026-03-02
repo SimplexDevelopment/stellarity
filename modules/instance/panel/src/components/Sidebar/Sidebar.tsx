@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { id: 'members', label: 'Members', icon: '◉' },
   { id: 'moderation', label: 'Moderation', icon: '⚑' },
   { id: 'audit-logs', label: 'Audit Logs', icon: '☰' },
+  { id: 'database', label: 'Database', icon: '⛃' },
 ];
 
 export const Sidebar: React.FC = () => {
@@ -29,6 +30,7 @@ export const Sidebar: React.FC = () => {
   const activeNavId: PanelView =
     activeView === 'server-detail' ? 'servers' :
     activeView === 'member-detail' ? 'members' :
+    activeView === 'database-table' ? 'database' :
     activeView;
 
   return (

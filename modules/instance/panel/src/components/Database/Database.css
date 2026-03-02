@@ -1,0 +1,27 @@
+.database-view {
+  animation: fadeIn 300ms ease;
+}
+
+.database-view__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.database-view__table-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.database-view__table-link:hover {
+  color: var(--color-accent-bright);
+  text-decoration: underline;
+}

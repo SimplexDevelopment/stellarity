@@ -7,7 +7,7 @@
 import { Router, Response } from 'express';
 import { dmService } from '../services/dm.service.js';
 import { authenticate, validate } from '../middleware/auth.middleware.js';
-import { dmSendSchema } from '@stellarity/shared';
+import { dmSendSchema, AppError } from '@stellarity/shared';
 import { logger } from '../utils/logger.js';
 
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
@@ -37,12 +37,8 @@ router.post('/send', validate(dmSendSchema), async (req: AuthenticatedRequest, r
       status: 'buffered',
     });
   } catch (error: any) {
-    if (error.message === 'Recipient not found') {
-      res.status(404).json({ error: error.message });
-    } else if (error.message === 'Cannot send DM to yourself') {
-      res.status(400).json({ error: error.message });
-    } else if (error.message === 'Too many pending messages') {
-      res.status(429).json({ error: error.message });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('DM buffer error:', error);
       res.status(500).json({ error: 'Failed to buffer message' });

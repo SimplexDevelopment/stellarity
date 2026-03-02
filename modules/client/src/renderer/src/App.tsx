@@ -15,6 +15,7 @@ import { ServerBrowserModal } from './components/Modal/ServerBrowserModal'
 import { UserSettings } from './components/UserSettings/UserSettings'
 import { Discovery } from './components/Discovery/Discovery'
 import { DirectMessages } from './components/DirectMessages/DirectMessages'
+import { Connections } from './components/Connections/Connections'
 import { MFAVerifyDialog } from './components/MFA/MFA'
 import { useAuthStore } from './stores/authStore'
 import { useServerStore } from './stores/serverStore'
@@ -306,6 +307,9 @@ const App: React.FC = () => {
           )}
           {viewMode === 'dm' && (
             <DirectMessages />
+          )}
+          {viewMode === 'connections' && (
+            <Connections />
           )}
           {viewMode === 'server' && (
             <>

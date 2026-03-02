@@ -7,13 +7,15 @@
  */
 import { query, transaction } from '../database/postgres.js';
 import { hashPassword, verifyPassword, needsRehash } from '../utils/password.js';
-import { signAccessToken, signRefreshToken, hashToken, verifyRefreshToken } from '../config/keys.js';
+import { signAccessToken, signRefreshToken, signMfaToken, hashToken, verifyRefreshToken, verifyMfaToken } from '../config/keys.js';
+import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
 import * as crypto from 'crypto';
 
 import type { CentralUser, AuthResult, RegisterInput, LoginInput } from '@stellarity/shared';
+import { ConflictError, UnauthorizedError, NotFoundError, BadRequestError, ForbiddenError } from '@stellarity/shared';
 
 class AuthService {
   /** Register a new user */
@@ -26,7 +28,7 @@ class AuthService {
       [username.toLowerCase()]
     );
     if (existingUsername.rows.length > 0) {
-      throw new Error('Username already taken');
+      throw new ConflictError('Username already taken');
     }
 
     // Check email uniqueness
@@ -35,7 +37,7 @@ class AuthService {
       [email.toLowerCase()]
     );
     if (existingEmail.rows.length > 0) {
-      throw new Error('Email already registered');
+      throw new ConflictError('Email already registered');
     }
 
     // Hash password with Argon2id
@@ -72,7 +74,7 @@ class AuthService {
       user,
       accessToken,
       refreshToken,
-      accessTokenExpiry: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000, // 100 years
+      accessTokenExpiry: Date.now() + config.jwt.accessTokenTTLMs,
     };
   }
 
@@ -91,7 +93,7 @@ class AuthService {
 
     if (result.rows.length === 0) {
       await this.logAuditEvent(null, 'login_failed', 'user', null, { login }, ipAddress);
-      throw new Error('Invalid credentials');
+      throw new UnauthorizedError('Invalid credentials');
     }
 
     const row = result.rows[0];
@@ -99,14 +101,14 @@ class AuthService {
     // Check if user is suspended
     if (row.is_suspended) {
       await this.logAuditEvent(row.id, 'login_failed', 'user', row.id, { reason: 'suspended' }, ipAddress);
-      throw new Error('Account suspended. Contact an administrator.');
+      throw new ForbiddenError('Account suspended. Contact an administrator.');
     }
 
     // Verify password
     const isValid = await verifyPassword(password, row.password_hash);
     if (!isValid) {
       await this.logAuditEvent(row.id, 'login_failed', 'user', row.id, { reason: 'invalid_password' }, ipAddress);
-      throw new Error('Invalid credentials');
+      throw new UnauthorizedError('Invalid credentials');
     }
 
     // Check if password needs rehashing
@@ -123,7 +125,7 @@ class AuthService {
 
     // If MFA is enabled, return a temporary MFA token instead
     if (row.mfa_enabled) {
-      const mfaToken = await signRefreshToken(user.id, user.username); // Reuse refresh token signing for MFA temp tokens
+      const mfaToken = await signMfaToken(user.id, user.username);
       return {
         user,
         accessToken: '',
@@ -153,7 +155,7 @@ class AuthService {
       user,
       accessToken,
       refreshToken,
-      accessTokenExpiry: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000,
+      accessTokenExpiry: Date.now() + config.jwt.accessTokenTTLMs,
     };
   }
 
@@ -170,7 +172,7 @@ class AuthService {
     );
 
     if (result.rows.length === 0) {
-      throw new Error('Invalid or expired refresh token');
+      throw new UnauthorizedError('Invalid or expired refresh token');
     }
 
     const row = result.rows[0];
@@ -193,7 +195,7 @@ class AuthService {
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
-      accessTokenExpiry: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000,
+      accessTokenExpiry: Date.now() + config.jwt.accessTokenTTLMs,
     };
   }
 
@@ -245,7 +247,7 @@ class AuthService {
 
     if (setClauses.length === 0) {
       const user = await this.getUserById(userId);
-      if (!user) throw new Error('User not found');
+      if (!user) throw new NotFoundError('User not found');
       return user;
     }
 
@@ -257,7 +259,7 @@ class AuthService {
       values
     );
 
-    if (result.rows.length === 0) throw new Error('User not found');
+    if (result.rows.length === 0) throw new NotFoundError('User not found');
     return this.mapUser(result.rows[0]);
   }
 
@@ -294,8 +296,8 @@ class AuthService {
   /** Set up MFA for a user — generates secret and QR code */
   async setupMFA(userId: string): Promise<{ qrCodeUrl: string; secret: string }> {
     const user = await this.getUserById(userId);
-    if (!user) throw new Error('User not found');
-    if (user.mfaEnabled) throw new Error('MFA is already enabled');
+    if (!user) throw new NotFoundError('User not found');
+    if (user.mfaEnabled) throw new ConflictError('MFA is already enabled');
 
     const secret = authenticator.generateSecret();
 
@@ -318,13 +320,13 @@ class AuthService {
       [userId]
     );
 
-    if (result.rows.length === 0) throw new Error('User not found');
+    if (result.rows.length === 0) throw new NotFoundError('User not found');
     const row = result.rows[0];
-    if (row.mfa_enabled) throw new Error('MFA is already enabled');
-    if (!row.mfa_secret) throw new Error('MFA setup not initiated');
+    if (row.mfa_enabled) throw new ConflictError('MFA is already enabled');
+    if (!row.mfa_secret) throw new BadRequestError('MFA setup not initiated');
 
     const isValid = authenticator.verify({ token: code, secret: row.mfa_secret });
-    if (!isValid) throw new Error('Invalid MFA code');
+    if (!isValid) throw new UnauthorizedError('Invalid MFA code');
 
     // Generate backup codes
     const backupCodes = Array.from({ length: 10 }, () =>
@@ -347,9 +349,9 @@ class AuthService {
 
   /** Verify MFA during login — validate TOTP code or backup code, return tokens */
   async verifyMFALogin(mfaToken: string, code: string, ipAddress?: string): Promise<AuthResult> {
-    // Verify the temporary MFA token (which is a refresh-style JWT)
-    const decoded = await verifyRefreshToken(mfaToken);
-    if (!decoded) throw new Error('Invalid or expired MFA token');
+    // Verify the temporary MFA token (dedicated mfa type)
+    const decoded = await verifyMfaToken(mfaToken);
+    if (!decoded) throw new UnauthorizedError('Invalid or expired MFA token');
 
     const userId = decoded.userId;
     const result = await query(
@@ -360,11 +362,11 @@ class AuthService {
       [userId]
     );
 
-    if (result.rows.length === 0) throw new Error('User not found');
+    if (result.rows.length === 0) throw new NotFoundError('User not found');
     const row = result.rows[0];
 
     if (!row.mfa_enabled || !row.mfa_secret) {
-      throw new Error('MFA is not enabled for this account');
+      throw new BadRequestError('MFA is not enabled for this account');
     }
 
     let valid = false;
@@ -394,7 +396,7 @@ class AuthService {
 
     if (!valid) {
       await this.logAuditEvent(userId, 'mfa_failed', 'user', userId, null, ipAddress);
-      throw new Error('Invalid MFA code');
+      throw new UnauthorizedError('Invalid MFA code');
     }
 
     const user = this.mapUser(row);
@@ -418,7 +420,7 @@ class AuthService {
       user,
       accessToken,
       refreshToken,
-      accessTokenExpiry: Date.now() + 100 * 365 * 24 * 60 * 60 * 1000,
+      accessTokenExpiry: Date.now() + config.jwt.accessTokenTTLMs,
     };
   }
 
@@ -429,13 +431,13 @@ class AuthService {
       [userId]
     );
 
-    if (result.rows.length === 0) throw new Error('User not found');
+    if (result.rows.length === 0) throw new NotFoundError('User not found');
     const row = result.rows[0];
-    if (!row.mfa_enabled) throw new Error('MFA is not enabled');
+    if (!row.mfa_enabled) throw new BadRequestError('MFA is not enabled');
 
     // Require valid TOTP code to disable
     const isValid = authenticator.verify({ token: code, secret: row.mfa_secret });
-    if (!isValid) throw new Error('Invalid MFA code');
+    if (!isValid) throw new UnauthorizedError('Invalid MFA code');
 
     await query(
       'UPDATE users SET mfa_enabled = false, mfa_secret = NULL, mfa_backup_codes = NULL WHERE id = $1',

@@ -14,12 +14,18 @@ const CENTRAL_URL = import.meta.env.VITE_CENTRAL_URL || 'http://localhost:3001';
 export type DMSignalHandler = (data: { peerId: string; signal: any }) => void;
 export type DMPendingHandler = (data: { messages: any[]; count: number }) => void;
 export type PresenceHandler = (data: { userId: string; status: string }) => void;
+export type ConnectionRequestHandler = (data: { request: any }) => void;
+export type ConnectionAcceptedHandler = (data: { friendship: any }) => void;
+export type ConnectionRemovedHandler = (data: { friendshipId: string; userId: string }) => void;
 
 class CentralSocketManager {
   private socket: Socket | null = null;
   private dmSignalHandler: DMSignalHandler | null = null;
   private dmPendingHandler: DMPendingHandler | null = null;
   private presenceHandler: PresenceHandler | null = null;
+  private connectionRequestHandler: ConnectionRequestHandler | null = null;
+  private connectionAcceptedHandler: ConnectionAcceptedHandler | null = null;
+  private connectionRemovedHandler: ConnectionRemovedHandler | null = null;
 
   connect(token: string): void {
     if (this.socket?.connected) return;
@@ -85,6 +91,23 @@ class CentralSocketManager {
       // Trigger a fetch of pending messages
       this.dmPendingHandler?.({ messages: [], count: 1 });
     });
+
+    // ── Connection (Friend) Events ────────────────────────────────
+
+    this.socket.on('friend:request-received', (data: { request: any }) => {
+      console.log('[CentralSocket] Connection request received');
+      this.connectionRequestHandler?.(data);
+    });
+
+    this.socket.on('friend:accepted', (data: { friendship: any }) => {
+      console.log('[CentralSocket] Connection accepted');
+      this.connectionAcceptedHandler?.(data);
+    });
+
+    this.socket.on('friend:removed', (data: { friendshipId: string; userId: string }) => {
+      console.log('[CentralSocket] Connection removed');
+      this.connectionRemovedHandler?.(data);
+    });
   }
 
   // ── DM Signaling API ──────────────────────────────────────────────
@@ -127,6 +150,23 @@ class CentralSocketManager {
 
   onPresence(handler: PresenceHandler): void {
     this.presenceHandler = handler;
+  }
+
+  // ── Connection Event Handlers ─────────────────────────────────────
+
+  onConnectionRequest(handler: ConnectionRequestHandler): () => void {
+    this.connectionRequestHandler = handler;
+    return () => { this.connectionRequestHandler = null; };
+  }
+
+  onConnectionAccepted(handler: ConnectionAcceptedHandler): () => void {
+    this.connectionAcceptedHandler = handler;
+    return () => { this.connectionAcceptedHandler = null; };
+  }
+
+  onConnectionRemoved(handler: ConnectionRemovedHandler): () => void {
+    this.connectionRemovedHandler = handler;
+    return () => { this.connectionRemovedHandler = null; };
   }
 
   // ── Utility ───────────────────────────────────────────────────────

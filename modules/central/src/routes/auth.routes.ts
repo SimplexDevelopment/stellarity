@@ -8,7 +8,7 @@ import { Router, Request, Response } from 'express';
 import { authService } from '../services/auth.service.js';
 import { authenticate, validate } from '../middleware/auth.middleware.js';
 import { getPublicKeyPem } from '../config/keys.js';
-import { registerSchema, loginSchema, mfaVerifySchema, updateProfileSchema } from '@stellarity/shared';
+import { registerSchema, loginSchema, mfaVerifySchema, updateProfileSchema, AppError } from '@stellarity/shared';
 import { logger } from '../utils/logger.js';
 
 import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
@@ -36,8 +36,8 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
     const result = await authService.register(req.body);
     res.status(201).json(result);
   } catch (error: any) {
-    if (error.message === 'Username already taken' || error.message === 'Email already registered') {
-      res.status(409).json({ error: error.message });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('Registration error:', error);
       res.status(500).json({ error: 'Registration failed' });
@@ -68,8 +68,8 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
       accessTokenExpiry: result.accessTokenExpiry,
     });
   } catch (error: any) {
-    if (error.message === 'Invalid credentials') {
-      res.status(401).json({ error: 'Invalid credentials' });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('Login error:', error);
       res.status(500).json({ error: 'Login failed' });
@@ -91,8 +91,8 @@ router.post('/refresh', async (req: Request, res: Response) => {
     const tokens = await authService.refreshTokens(refreshToken);
     res.json(tokens);
   } catch (error: any) {
-    if (error.message === 'Invalid or expired refresh token') {
-      res.status(401).json({ error: error.message });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('Token refresh error:', error);
       res.status(500).json({ error: 'Token refresh failed' });
@@ -138,8 +138,8 @@ router.patch('/profile', authenticate, validate(updateProfileSchema), async (req
     const user = await authService.updateProfile(req.user!.userId, req.body);
     res.json({ user });
   } catch (error: any) {
-    if (error.message === 'User not found') {
-      res.status(404).json({ error: error.message });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('Profile update error:', error);
       res.status(500).json({ error: 'Profile update failed' });
@@ -155,8 +155,8 @@ router.post('/mfa/setup', authenticate, async (req: AuthenticatedRequest, res: R
     const result = await authService.setupMFA(req.user!.userId);
     res.json(result);
   } catch (error: any) {
-    if (error.message === 'MFA is already enabled') {
-      res.status(409).json({ error: error.message });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('MFA setup error:', error);
       res.status(500).json({ error: 'MFA setup failed' });
@@ -175,10 +175,8 @@ router.post('/mfa/verify', authenticate, async (req: AuthenticatedRequest, res: 
     const result = await authService.verifyMFASetup(req.user!.userId, token);
     res.json(result);
   } catch (error: any) {
-    if (error.message === 'Invalid MFA code') {
-      res.status(401).json({ error: error.message });
-    } else if (error.message === 'MFA is already enabled' || error.message === 'MFA setup not initiated') {
-      res.status(400).json({ error: error.message });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('MFA verify error:', error);
       res.status(500).json({ error: 'MFA verification failed' });
@@ -198,8 +196,8 @@ router.post('/mfa/login', async (req: Request, res: Response) => {
     const result = await authService.verifyMFALogin(mfaToken, code, ip);
     res.json(result);
   } catch (error: any) {
-    if (error.message === 'Invalid MFA code' || error.message === 'Invalid or expired MFA token') {
-      res.status(401).json({ error: error.message });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('MFA login error:', error);
       res.status(500).json({ error: 'MFA login failed' });
@@ -218,10 +216,8 @@ router.post('/mfa/disable', authenticate, async (req: AuthenticatedRequest, res:
     await authService.disableMFA(req.user!.userId, token);
     res.json({ disabled: true });
   } catch (error: any) {
-    if (error.message === 'Invalid MFA code') {
-      res.status(401).json({ error: error.message });
-    } else if (error.message === 'MFA is not enabled') {
-      res.status(400).json({ error: error.message });
+    if (error instanceof AppError) {
+      res.status(error.statusCode).json({ error: error.message });
     } else {
       logger.error('MFA disable error:', error);
       res.status(500).json({ error: 'MFA disable failed' });

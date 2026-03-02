@@ -7,7 +7,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 
-import { config } from './config/index.js';
+import { config, validateConfig } from './config/index.js';
 import { getInstanceIdentity, getInstancePublicInfo } from './config/identity.js';
 import { logger } from './utils/logger.js';
 import { initializeDatabase, checkConnection, closeDatabase } from './database/database.js';
@@ -21,7 +21,13 @@ import serverRoutes from './routes/server.routes.js';
 import messageRoutes from './routes/message.routes.js';
 import moderationRoutes from './routes/moderation.routes.js';
 import lobbyRoutes from './routes/lobby.routes.js';
+import reactionRoutes from './routes/reaction.routes.js';
+import threadRoutes from './routes/thread.routes.js';
+import scheduledRoutes from './routes/scheduled.routes.js';
+import encryptionRoutes from './routes/encryption.routes.js';
 import { startPanelServer, stopPanelServer } from './panel/index.js';
+import { ephemeralService } from './services/ephemeral.service.js';
+import { scheduledService } from './services/scheduled.service.js';
 
 /** Maximum number of ports to try before giving up */
 const MAX_PORT_ATTEMPTS = 20;
@@ -54,6 +60,9 @@ async function findAvailablePort(startPort: number): Promise<number> {
 }
 
 async function startInstanceServer() {
+  // Validate configuration early
+  validateConfig();
+
   // Initialize instance identity (generates keypair on first run)
   const identity = await getInstanceIdentity();
   logger.info(`Instance ID: ${identity.instanceId}`);
@@ -124,6 +133,10 @@ async function startInstanceServer() {
   app.use('/api/servers', moderationRoutes);
   app.use('/api/servers', lobbyRoutes);
   app.use('/api', messageRoutes);
+  app.use('/api', reactionRoutes);
+  app.use('/api', threadRoutes);
+  app.use('/api', scheduledRoutes);
+  app.use('/api', encryptionRoutes);
   
   // Error handling
   app.use(notFoundHandler);
@@ -190,27 +203,45 @@ async function startInstanceServer() {
 
   // Start management panel server
   await startPanelServer();
+
+  // Start background service loops
+  ephemeralService.startCleanupLoop();
+  scheduledService.startDeliveryLoop();
   
   // Graceful shutdown
+  let isShuttingDown = false;
+
   const shutdown = async (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
     logger.info(`${signal} received, shutting down gracefully...`);
     
-    httpServer.close(async () => {
-      logger.info('HTTP server closed');
-
-      await stopPanelServer();
-      closeDatabase();
-      await closeRedis();
-      
-      logger.info('Shutdown complete');
-      process.exit(0);
-    });
-    
     // Force shutdown after 30 seconds
-    setTimeout(() => {
+    const forceTimeout = setTimeout(() => {
       logger.error('Forced shutdown after timeout');
       process.exit(1);
     }, 30000);
+    forceTimeout.unref();
+
+    // Stop accepting new connections
+    await new Promise<void>((resolve) => {
+      httpServer.close(() => {
+        logger.info('HTTP server closed');
+        resolve();
+      });
+    });
+
+    // Clean up resources sequentially
+    ephemeralService.stopCleanupLoop();
+    scheduledService.stopDeliveryLoop();
+    await stopPanelServer();
+    closeDatabase();
+    await closeRedis();
+    
+    logger.info('Shutdown complete');
+    clearTimeout(forceTimeout);
+    process.exit(0);
   };
   
   process.on('SIGTERM', () => shutdown('SIGTERM'));

@@ -209,4 +209,161 @@ router.delete('/server-creators/:userId', (req: PanelRequest, res: Response) => 
   }
 });
 
+// ── Server Features Management ──────────────────────────────────
+
+/** GET /panel/api/settings/server-features — list all server feature flags */
+router.get('/server-features', (req: PanelRequest, res: Response) => {
+  try {
+    const result = query(
+      `SELECT sf.*, s.name as server_name
+       FROM server_features sf
+       LEFT JOIN servers s ON s.id = sf.server_id
+       ORDER BY sf.server_id, sf.feature`
+    );
+    res.json({
+      features: result.rows.map(r => ({
+        id: r.id,
+        serverId: r.server_id,
+        serverName: r.server_name,
+        feature: r.feature,
+        enabled: !!r.enabled,
+        createdAt: r.created_at,
+      })),
+    });
+  } catch (error) {
+    logger.error('Failed to get server features:', error);
+    res.status(500).json({ error: 'Failed to get server features' });
+  }
+});
+
+/** POST /panel/api/settings/server-features — add a feature flag */
+router.post('/server-features', (req: PanelRequest, res: Response) => {
+  try {
+    const { serverId, feature, enabled } = req.body;
+
+    if (!serverId || !feature) {
+      res.status(400).json({ error: 'serverId and feature are required' });
+      return;
+    }
+
+    const serverCheck = query('SELECT id FROM servers WHERE id = $1', [serverId]);
+    if (serverCheck.rows.length === 0) {
+      res.status(404).json({ error: 'Server not found' });
+      return;
+    }
+
+    const id = generateId();
+    query(
+      `INSERT INTO server_features (id, server_id, feature, enabled, created_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, serverId, feature, enabled !== false ? 1 : 0, now()]
+    );
+
+    query(
+      `INSERT INTO audit_logs (id, user_id, action, target_type, target_id, details, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [generateId(), 'panel-admin', 'panel.server-feature.add', 'server', serverId,
+        JSON.stringify({ feature, enabled: enabled !== false }), now()]
+    );
+
+    res.json({ success: true, id });
+  } catch (error) {
+    logger.error('Failed to add server feature:', error);
+    res.status(500).json({ error: 'Failed to add server feature' });
+  }
+});
+
+/** DELETE /panel/api/settings/server-features/:id — remove a feature flag */
+router.delete('/server-features/:id', (req: PanelRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const existing = query('SELECT * FROM server_features WHERE id = $1', [id]);
+    if (existing.rows.length === 0) {
+      res.status(404).json({ error: 'Feature flag not found' });
+      return;
+    }
+
+    query('DELETE FROM server_features WHERE id = $1', [id]);
+
+    query(
+      `INSERT INTO audit_logs (id, user_id, action, target_type, target_id, details, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [generateId(), 'panel-admin', 'panel.server-feature.remove', 'server', existing.rows[0].server_id,
+        JSON.stringify({ feature: existing.rows[0].feature }), now()]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Failed to remove server feature:', error);
+    res.status(500).json({ error: 'Failed to remove server feature' });
+  }
+});
+
+// ── Raw Instance Settings ───────────────────────────────────────
+
+/** GET /panel/api/settings/raw — all raw key-value settings */
+router.get('/raw', (req: PanelRequest, res: Response) => {
+  try {
+    const result = query('SELECT key, value, updated_at FROM instance_settings ORDER BY key ASC');
+    res.json({
+      settings: result.rows.map(r => ({
+        key: r.key,
+        value: r.value,
+        updatedAt: r.updated_at,
+      })),
+    });
+  } catch (error) {
+    logger.error('Failed to get raw settings:', error);
+    res.status(500).json({ error: 'Failed to get raw settings' });
+  }
+});
+
+/** PUT /panel/api/settings/raw — upsert a raw key-value setting */
+router.put('/raw', (req: PanelRequest, res: Response) => {
+  try {
+    const { key, value } = req.body;
+
+    if (!key || typeof key !== 'string') {
+      res.status(400).json({ error: 'key is required' });
+      return;
+    }
+
+    setSetting(key, value ?? '');
+
+    query(
+      `INSERT INTO audit_logs (id, user_id, action, target_type, target_id, details, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [generateId(), 'panel-admin', 'panel.settings.raw-update', 'settings', key,
+        JSON.stringify({ key, value }), now()]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Failed to update raw setting:', error);
+    res.status(500).json({ error: 'Failed to update raw setting' });
+  }
+});
+
+/** DELETE /panel/api/settings/raw/:key — delete a raw setting */
+router.delete('/raw/:key', (req: PanelRequest, res: Response) => {
+  try {
+    const { key } = req.params;
+
+    query('DELETE FROM instance_settings WHERE key = $1', [key]);
+
+    query(
+      `INSERT INTO audit_logs (id, user_id, action, target_type, target_id, details, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [generateId(), 'panel-admin', 'panel.settings.raw-delete', 'settings', key,
+        JSON.stringify({ key }), now()]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Failed to delete raw setting:', error);
+    res.status(500).json({ error: 'Failed to delete raw setting' });
+  }
+});
+
 export default router;

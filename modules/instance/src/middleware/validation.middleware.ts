@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import { logger } from '../utils/logger.js';
+import { AppError, apiError } from '@stellarity/shared';
 
 // Validation middleware factory
 export function validate(schema: ZodSchema) {
@@ -15,15 +16,12 @@ export function validate(schema: ZodSchema) {
           message: e.message,
         }));
         
-        res.status(400).json({
-          error: 'Validation failed',
-          details: errors,
-        });
+        res.status(400).json(apiError('Validation failed', errors));
         return;
       }
       
       logger.error('Validation error:', error);
-      res.status(400).json({ error: 'Invalid request data' });
+      res.status(400).json(apiError('Invalid request data'));
     }
   };
 }
@@ -35,17 +33,21 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ): void {
+  // Operational errors thrown by services — return structured response
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json(apiError(err.message));
+    return;
+  }
+
+  // Unexpected errors — log and hide details in production
   logger.error('Unhandled error:', err);
-  
-  // Don't leak error details in production
   const message = process.env.NODE_ENV === 'production'
     ? 'Internal server error'
     : err.message;
-  
-  res.status(500).json({ error: message });
+  res.status(500).json(apiError(message));
 }
 
 // Not found handler
 export function notFoundHandler(req: Request, res: Response): void {
-  res.status(404).json({ error: 'Endpoint not found' });
+  res.status(404).json(apiError('Endpoint not found'));
 }

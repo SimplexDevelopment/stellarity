@@ -223,6 +223,54 @@ class CentralApiClient {
       this.request('/api/subscription/cancel', { method: 'POST' }),
   };
 
+  // ── Connections (Friends) Endpoints ────────────────────────────────
+
+  connections = {
+    list: () =>
+      this.request<{ friends: any[] }>('/api/friends'),
+
+    getIncomingRequests: () =>
+      this.request<{ requests: any[] }>('/api/friends/requests/incoming'),
+
+    getOutgoingRequests: () =>
+      this.request<{ requests: any[] }>('/api/friends/requests/outgoing'),
+
+    sendRequest: (recipientUsername: string, message?: string) =>
+      this.request<{ friendship: any }>('/api/friends/request', {
+        method: 'POST',
+        body: JSON.stringify({ recipientUsername, message }),
+      }),
+
+    accept: (friendshipId: string) =>
+      this.request<{ friendship: any }>(`/api/friends/${friendshipId}/accept`, {
+        method: 'POST',
+      }),
+
+    reject: (friendshipId: string) =>
+      this.request<{ success: boolean }>(`/api/friends/${friendshipId}/reject`, {
+        method: 'POST',
+      }),
+
+    remove: (friendshipId: string) =>
+      this.request<{ success: boolean }>(`/api/friends/${friendshipId}`, {
+        method: 'DELETE',
+      }),
+
+    getBlocked: () =>
+      this.request<{ blocked: any[] }>('/api/friends/blocked'),
+
+    block: (userId: string) =>
+      this.request<{ success: boolean }>('/api/friends/block', {
+        method: 'POST',
+        body: JSON.stringify({ userId }),
+      }),
+
+    unblock: (userId: string) =>
+      this.request<{ success: boolean }>(`/api/friends/block/${userId}`, {
+        method: 'DELETE',
+      }),
+  };
+
   // ── Health ────────────────────────────────────────────────────────
 
   health = () => this.request<any>('/health');

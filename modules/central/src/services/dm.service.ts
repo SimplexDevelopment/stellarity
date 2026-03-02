@@ -9,6 +9,7 @@
 import { query, transaction } from '../database/postgres.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
+import { NotFoundError, BadRequestError, RateLimitError } from '@stellarity/shared';
 
 import type { PendingDM, DMConversation } from '@stellarity/shared';
 
@@ -28,12 +29,12 @@ class DMService {
       [recipientId]
     );
     if (recipientCheck.rows.length === 0) {
-      throw new Error('Recipient not found');
+      throw new NotFoundError('Recipient not found');
     }
 
     // Ensure sender !== recipient
     if (senderId === recipientId) {
-      throw new Error('Cannot send DM to yourself');
+      throw new BadRequestError('Cannot send DM to yourself');
     }
 
     // Check pending message limit
@@ -43,7 +44,7 @@ class DMService {
       [senderId]
     );
     if (parseInt(pendingCount.rows[0].count, 10) >= (config.dm.maxPendingPerUser || 1000)) {
-      throw new Error('Too many pending messages');
+      throw new RateLimitError('Too many pending messages');
     }
 
     // Order user IDs for conversation (user1_id < user2_id constraint)

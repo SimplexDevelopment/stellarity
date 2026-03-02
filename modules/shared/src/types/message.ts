@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { MemberUser } from './server.js';
+import type { MessageReaction } from './reaction.js';
 
 export interface Message {
   id: string;
@@ -17,6 +18,11 @@ export interface Message {
   replyToId: string | null;
   pinned: boolean;
   author?: MemberUser;
+  reactions: MessageReaction[];
+  threadId: string | null;
+  threadCount: number | null;
+  expiresAt: string | null;
+  isEphemeral: boolean;
 }
 
 export interface MessageAttachment {

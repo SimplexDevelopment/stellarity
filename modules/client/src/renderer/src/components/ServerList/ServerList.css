@@ -39,6 +39,12 @@
   background: #1f2a3d;
 }
 
+.user-avatar.active {
+  border-color: var(--color-accent-primary);
+  background: #1f2a3d;
+  box-shadow: 0 0 6px rgba(var(--color-accent-primary-rgb, 100, 180, 255), 0.3);
+}
+
 .user-avatar img {
   width: 100%;
   height: 100%;

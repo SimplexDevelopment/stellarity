@@ -7,7 +7,6 @@
  * The private key never leaves the instance.
  */
 import { generateKeyPair, exportSPKI, exportPKCS8, importSPKI, importPKCS8 } from 'jose';
-import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs/promises';
 import path from 'path';
 import { config } from './index.js';
@@ -42,7 +41,7 @@ export async function getInstanceIdentity(): Promise<InstanceIdentity> {
     const publicKeySpki = await exportSPKI(publicKey);
     const privateKeyPkcs8 = await exportPKCS8(privateKey);
     
-    const instanceId = config.instance.id || uuidv4();
+    const instanceId = config.instance.id || crypto.randomUUID();
 
     cachedIdentity = {
       instanceId,

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { verifyCentralToken } from '../utils/centralAuth.js';
 import { cache } from '../database/redis.js';
 import { logger } from '../utils/logger.js';
+import { apiError } from '@stellarity/shared';
 
 import type { TokenUser } from '@stellarity/shared';
 
@@ -30,7 +31,7 @@ export async function authenticate(
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Authentication required' });
+      res.status(401).json(apiError('Authentication required'));
       return;
     }
     
@@ -39,7 +40,7 @@ export async function authenticate(
     // Check if token is blacklisted on this instance
     const isBlacklisted = await cache.exists(`blacklist:${token}`);
     if (isBlacklisted) {
-      res.status(401).json({ error: 'Token has been revoked' });
+      res.status(401).json(apiError('Token has been revoked'));
       return;
     }
     
@@ -47,7 +48,7 @@ export async function authenticate(
     const tokenUser = await verifyCentralToken(token);
     
     if (!tokenUser) {
-      res.status(401).json({ error: 'Invalid or expired token' });
+      res.status(401).json(apiError('Invalid or expired token'));
       return;
     }
     
@@ -63,7 +64,7 @@ export async function authenticate(
     next();
   } catch (error) {
     logger.error('Authentication error:', error);
-    res.status(401).json({ error: 'Authentication failed' });
+    res.status(401).json(apiError('Authentication failed'));
   }
 }
 

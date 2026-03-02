@@ -7,6 +7,31 @@ class MemoryStore {
   private store = new Map<string, { value: string; expiry?: number }>();
   private sets = new Map<string, Set<string>>();
   private hashes = new Map<string, Map<string, string>>();
+  private sweepTimer: ReturnType<typeof setInterval>;
+
+  constructor(sweepIntervalMs = 60_000) {
+    // Periodically sweep expired entries so un-read keys don't leak
+    this.sweepTimer = setInterval(() => this.sweep(), sweepIntervalMs);
+    this.sweepTimer.unref(); // don't block process exit
+  }
+
+  /** Remove all expired entries from the key-value store. */
+  private sweep(): void {
+    const now = Date.now();
+    for (const [key, item] of this.store) {
+      if (item.expiry && now > item.expiry) {
+        this.store.delete(key);
+      }
+    }
+  }
+
+  /** Stop the periodic sweep and clear all data. */
+  destroy(): void {
+    clearInterval(this.sweepTimer);
+    this.store.clear();
+    this.sets.clear();
+    this.hashes.clear();
+  }
 
   private isExpired(key: string): boolean {
     const item = this.store.get(key);
@@ -508,6 +533,11 @@ export async function closeRedis(): Promise<void> {
   if (redis && !useMemoryFallback) {
     await redis.quit();
     logger.info('Redis connection closed');
+  }
+  if (memoryStore) {
+    memoryStore.destroy();
+    memoryStore = null;
+    logger.info('In-memory store cleaned up');
   }
 }
 

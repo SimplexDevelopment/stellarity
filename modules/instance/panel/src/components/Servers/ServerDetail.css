@@ -9,6 +9,25 @@
   margin-bottom: var(--space-2);
 }
 
+.server-detail__header .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.server-detail__header-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.server-detail__error {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  background: rgba(232, 64, 87, 0.08);
+  border-bottom: 1px solid rgba(232, 64, 87, 0.2);
+}
+
 .server-detail__meta {
   padding: var(--space-4) var(--space-5);
   display: flex;
@@ -25,6 +44,42 @@
   font-size: var(--text-xs);
 }
 
+.server-detail__invite-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Edit Form ─────────────────────────────────────────── */
+.server-detail__edit-form {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.server-detail__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.server-detail__field-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.server-detail__edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+}
+
+/* ── Grid / Lists ──────────────────────────────────────── */
 .server-detail__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -41,6 +96,13 @@
   padding: var(--space-2);
   max-height: 400px;
   overflow-y: auto;
+}
+
+.server-detail__list-empty {
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
 .server-detail__list-item {
@@ -62,9 +124,65 @@
   text-align: center;
 }
 
+.server-detail__ch-desc {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .server-detail__role-color {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.server-detail__perm-count {
+  margin-left: auto;
+  font-size: var(--text-xs);
+}
+
+/* ── Panel Headers with Actions ────────────────────────── */
+.server-detail .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ── Inline Form (channel/category/role creation) ──────── */
+.server-detail__inline-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-panel-border);
+  background: var(--color-bg-tertiary);
+}
+
+.server-detail__inline-form input,
+.server-detail__inline-form select {
+  max-width: 300px;
+}
+
+.server-detail__inline-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+/* ── Item Action Button (delete ✕) ─────────────────────── */
+.server-detail__item-action {
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  padding: 2px 6px !important;
+  min-width: unset !important;
+  font-size: var(--text-xs) !important;
+}
+
+.server-detail__list-item:hover .server-detail__item-action {
+  opacity: 1;
 }

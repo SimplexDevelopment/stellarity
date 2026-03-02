@@ -173,3 +173,55 @@
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
 }
+
+/* Panel header with action button */
+.settings__panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Add form for features / raw settings */
+.settings__add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-bg-tertiary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* Inline edit for raw settings values */
+.settings__inline-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settings__inline-edit input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Raw value double-click to edit */
+.settings__raw-value {
+  cursor: default;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  word-break: break-all;
+}
+
+.settings__raw-value:hover {
+  outline: 1px dashed var(--color-border);
+  outline-offset: 2px;
+}
+
+/* Feature table code styling */
+.settings .data-table code {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--color-bg-tertiary);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+}

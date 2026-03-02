@@ -111,6 +111,43 @@ class PanelApiClient {
       this.request<{ success: boolean }>(`/panel/api/settings/server-creators/${userId}`, {
         method: 'DELETE',
       }),
+
+    // ── Server Features ──
+    getServerFeatures: () =>
+      this.request<{
+        features: Array<{
+          id: string; serverId: string; serverName: string | null;
+          feature: string; enabled: boolean; createdAt: string;
+        }>;
+      }>('/panel/api/settings/server-features'),
+
+    addServerFeature: (serverId: string, feature: string, enabled?: boolean) =>
+      this.request<{ success: boolean; id: string }>('/panel/api/settings/server-features', {
+        method: 'POST',
+        body: JSON.stringify({ serverId, feature, enabled }),
+      }),
+
+    removeServerFeature: (id: string) =>
+      this.request<{ success: boolean }>(`/panel/api/settings/server-features/${id}`, {
+        method: 'DELETE',
+      }),
+
+    // ── Raw Settings ──
+    getRawSettings: () =>
+      this.request<{
+        settings: Array<{ key: string; value: string; updatedAt: string }>;
+      }>('/panel/api/settings/raw'),
+
+    upsertRawSetting: (key: string, value: string) =>
+      this.request<{ success: boolean }>('/panel/api/settings/raw', {
+        method: 'PUT',
+        body: JSON.stringify({ key, value }),
+      }),
+
+    deleteRawSetting: (key: string) =>
+      this.request<{ success: boolean }>(`/panel/api/settings/raw/${key}`, {
+        method: 'DELETE',
+      }),
   };
 
   // ── Servers ───────────────────────────────────────────
@@ -140,6 +177,77 @@ class PanelApiClient {
       this.request<{ success: boolean; message: string }>(`/panel/api/servers/${id}/owner`, {
         method: 'PUT',
         body: JSON.stringify({ newOwnerId }),
+      }),
+
+    create: (data: { name: string; description?: string; ownerId: string; maxMembers?: number }) =>
+      this.request<{ success: boolean; serverId: string; inviteCode: string }>('/panel/api/servers', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    update: (id: string, data: { name?: string; description?: string; maxMembers?: number }) =>
+      this.request<{ success: boolean; message: string; changes: string[] }>(`/panel/api/servers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    regenerateInvite: (id: string) =>
+      this.request<{ success: boolean; inviteCode: string }>(`/panel/api/servers/${id}/regenerate-invite`, {
+        method: 'POST',
+      }),
+
+    // ── Categories (sub-resource) ──
+    createCategory: (serverId: string, data: { name: string; position?: number }) =>
+      this.request<{ success: boolean; categoryId: string }>(`/panel/api/servers/${serverId}/categories`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    updateCategory: (serverId: string, catId: string, data: { name?: string; position?: number }) =>
+      this.request<{ success: boolean }>(`/panel/api/servers/${serverId}/categories/${catId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    deleteCategory: (serverId: string, catId: string) =>
+      this.request<{ success: boolean; message: string }>(`/panel/api/servers/${serverId}/categories/${catId}`, {
+        method: 'DELETE',
+      }),
+
+    // ── Channels (sub-resource) ──
+    createChannel: (serverId: string, data: { name: string; type?: string; description?: string; categoryId?: string; position?: number; bitrate?: number; userLimit?: number }) =>
+      this.request<{ success: boolean; channelId: string }>(`/panel/api/servers/${serverId}/channels`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    updateChannel: (serverId: string, chId: string, data: { name?: string; description?: string; categoryId?: string; position?: number; bitrate?: number; userLimit?: number }) =>
+      this.request<{ success: boolean }>(`/panel/api/servers/${serverId}/channels/${chId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    deleteChannel: (serverId: string, chId: string) =>
+      this.request<{ success: boolean; message: string }>(`/panel/api/servers/${serverId}/channels/${chId}`, {
+        method: 'DELETE',
+      }),
+
+    // ── Roles (sub-resource) ──
+    createRole: (serverId: string, data: { name: string; color?: string; position?: number; permissions?: Record<string, boolean> }) =>
+      this.request<{ success: boolean; roleId: string }>(`/panel/api/servers/${serverId}/roles`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    updateRole: (serverId: string, roleId: string, data: { name?: string; color?: string; position?: number; permissions?: Record<string, boolean> }) =>
+      this.request<{ success: boolean }>(`/panel/api/servers/${serverId}/roles/${roleId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    deleteRole: (serverId: string, roleId: string) =>
+      this.request<{ success: boolean; message: string }>(`/panel/api/servers/${serverId}/roles/${roleId}`, {
+        method: 'DELETE',
       }),
   };
 
@@ -232,6 +340,55 @@ class PanelApiClient {
         `/panel/api/audit-logs?${qs.toString()}`
       );
     },
+  };
+
+  // ── Database Browser ──────────────────────────────────
+
+  database = {
+    getTables: () =>
+      this.request<{ tables: Array<{ name: string; rowCount: number; readOnly: boolean }> }>(
+        '/panel/api/database'
+      ),
+
+    getSchema: (table: string) =>
+      this.request<{
+        table: string;
+        columns: Array<{ name: string; type: string; pk: boolean; notnull: boolean; dflt_value: string | null }>;
+        primaryKeys: string[];
+        readOnly: boolean;
+      }>(`/panel/api/database/${table}/schema`),
+
+    getRows: (table: string, params?: { page?: number; limit?: number; search?: string; sort?: string; order?: 'ASC' | 'DESC' }) => {
+      const qs = new URLSearchParams();
+      if (params?.page) qs.set('page', String(params.page));
+      if (params?.limit) qs.set('limit', String(params.limit));
+      if (params?.search) qs.set('search', params.search);
+      if (params?.sort) qs.set('sort', params.sort);
+      if (params?.order) qs.set('order', params.order);
+      return this.request<{
+        table: string;
+        columns: string[];
+        rows: any[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      }>(`/panel/api/database/${table}/rows?${qs.toString()}`);
+    },
+
+    insertRow: (table: string, data: Record<string, any>) =>
+      this.request<{ success: boolean; row: any }>(`/panel/api/database/${table}/rows`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    updateRow: (table: string, id: string, data: Record<string, any>) =>
+      this.request<{ success: boolean; row: any }>(`/panel/api/database/${table}/rows/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+
+    deleteRow: (table: string, id: string) =>
+      this.request<{ success: boolean; message: string }>(`/panel/api/database/${table}/rows/${id}`, {
+        method: 'DELETE',
+      }),
   };
 }
 

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../config/keys.js';
 import { logger } from '../utils/logger.js';
+import { AppError, apiError } from '@stellarity/shared';
 
 import type { TokenUser } from '@stellarity/shared';
 
@@ -10,7 +11,7 @@ export interface AuthenticatedRequest extends Request {
     username: string;
     displayName: string | null;
     avatarUrl: string | null;
-    tier: string;
+    tier: 'free' | 'premium' | 'enterprise';
   };
 }
 
@@ -24,7 +25,7 @@ export async function authenticate(
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Authentication required' });
+      res.status(401).json(apiError('Authentication required'));
       return;
     }
 
@@ -32,7 +33,7 @@ export async function authenticate(
     const tokenUser = await verifyAccessToken(token);
 
     if (!tokenUser) {
-      res.status(401).json({ error: 'Invalid or expired token' });
+      res.status(401).json(apiError('Invalid or expired token'));
       return;
     }
 
@@ -47,7 +48,7 @@ export async function authenticate(
     next();
   } catch (error) {
     logger.error('Authentication error:', error);
-    res.status(401).json({ error: 'Authentication failed' });
+    res.status(401).json(apiError('Authentication failed'));
   }
 }
 
@@ -83,9 +84,9 @@ export async function optionalAuth(
 
 /** Validate request body against a Zod schema */
 export function validate(schema: any) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      schema.parse(req.body);
+      req.body = await schema.parseAsync(req.body);
       next();
     } catch (error: any) {
       const errors = error.errors?.map((e: any) => ({
@@ -93,18 +94,28 @@ export function validate(schema: any) {
         message: e.message,
       })) || [{ field: 'unknown', message: 'Validation failed' }];
 
-      res.status(400).json({ error: 'Validation failed', errors });
+      res.status(400).json(apiError('Validation failed', errors));
     }
   };
 }
 
 /** Error handler middleware */
 export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
+  // Operational errors thrown by services — return structured response
+  if (err instanceof AppError) {
+    res.status(err.statusCode).json(apiError(err.message));
+    return;
+  }
+
+  // Unexpected errors — log and hide details in production
   logger.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error' });
+  const message = process.env.NODE_ENV === 'production'
+    ? 'Internal server error'
+    : err.message;
+  res.status(500).json(apiError(message));
 }
 
 /** 404 handler */
 export function notFoundHandler(_req: Request, res: Response): void {
-  res.status(404).json({ error: 'Endpoint not found' });
+  res.status(404).json(apiError('Endpoint not found'));
 }

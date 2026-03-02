@@ -8,7 +8,6 @@
  */
 import { Database } from 'bun:sqlite';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 
@@ -125,7 +124,7 @@ function convertPlaceholders(sql: string): string {
 
 /** Generate a new UUID v4 */
 export function generateId(): string {
-  return uuidv4();
+  return crypto.randomUUID();
 }
 
 /** Get current ISO timestamp (SQLite stores timestamps as TEXT) */

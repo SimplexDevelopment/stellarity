@@ -36,6 +36,18 @@ export const LIMITS = {
   LOBBY_CLEANUP_INTERVAL_MS: 30_000,
   DEFAULT_CATEGORY_TEXT: 'Relay',
   DEFAULT_CATEGORY_VOICE: 'Comms',
+  REACTIONS_PER_MESSAGE_MAX: 20,
+  REACTIONS_PER_USER_PER_MESSAGE: 20,
+  THREAD_NAME_MAX: 64,
+  THREADS_PER_CHANNEL_MAX: 100,
+  EPHEMERAL_TTL_MIN: 30,
+  EPHEMERAL_TTL_MAX: 604800,
+  SCHEDULED_MAX_FUTURE_DAYS: 30,
+  SCHEDULED_PER_USER_MAX: 25,
+  FRIENDS_MAX: 1000,
+  FRIEND_REQUESTS_MAX: 100,
+  EPHEMERAL_CLEANUP_INTERVAL_MS: 15_000,
+  SCHEDULED_CHECK_INTERVAL_MS: 10_000,
 } as const;
 
 /** Regex patterns for validation */
@@ -71,6 +83,21 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   errors?: Array<{ field: string; message: string }>;
+}
+
+/** Build a successful API response. */
+export function apiSuccess<T>(data: T): ApiResponse<T> {
+  return { success: true, data };
+}
+
+/** Build a failed API response. */
+export function apiError(
+  error: string,
+  fieldErrors?: Array<{ field: string; message: string }>
+): ApiResponse<never> {
+  const res: ApiResponse<never> = { success: false, error };
+  if (fieldErrors?.length) res.errors = fieldErrors;
+  return res;
 }
 
 /** Paginated response wrapper */

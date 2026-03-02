@@ -67,9 +67,13 @@ export const ServerList: React.FC<ServerListProps> = ({ onAddServer }) => {
 
   return (
     <div className="server-list">
-      {/* User avatar */}
+      {/* User avatar — opens Connections view */}
       <div className="server-list-header">
-        <div className="user-avatar">
+        <div
+          className={`user-avatar ${viewMode === 'connections' ? 'active' : ''}`}
+          onClick={() => setViewMode('connections')}
+          title="Connections"
+        >
           {user?.avatarUrl ? (
             <img src={user.avatarUrl} alt={user.displayName || user.username} />
           ) : (

@@ -5,7 +5,7 @@ const { combine, timestamp, printf, colorize, errors } = winston.format;
 
 // Custom log format
 const logFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
-  let log = `${timestamp} [${level}]: ${message}`;
+  let log = `${timestamp} [INSTANCE] [${level}]: ${message}`;
   
   if (Object.keys(meta).length > 0) {
     log += ` ${JSON.stringify(meta)}`;

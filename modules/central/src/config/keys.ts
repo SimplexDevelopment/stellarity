@@ -164,6 +164,49 @@ export async function verifyRefreshToken(token: string): Promise<{ userId: strin
   }
 }
 
+/** Sign a temporary MFA token (distinct type to prevent token confusion) */
+export async function signMfaToken(userId: string, username: string): Promise<string> {
+  if (!privateKey) {
+    throw new Error('Keys not initialized. Call initializeKeys() first.');
+  }
+
+  const token = await new SignJWT({
+    username,
+    type: 'mfa',
+  })
+    .setProtectedHeader({ alg: 'EdDSA' })
+    .setSubject(userId)
+    .setIssuedAt()
+    .setIssuer('stellarity-central')
+    .setExpirationTime('5m')
+    .sign(privateKey);
+
+  return token;
+}
+
+/** Verify a temporary MFA token */
+export async function verifyMfaToken(token: string): Promise<{ userId: string; username: string } | null> {
+  if (!publicKey) {
+    throw new Error('Keys not initialized. Call initializeKeys() first.');
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, publicKey, {
+      algorithms: ['EdDSA'],
+      issuer: 'stellarity-central',
+    });
+
+    if (payload.type !== 'mfa') return null;
+
+    return {
+      userId: payload.sub!,
+      username: payload.username as string,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Hash a token for storage (refresh token rotation) */
 export function hashToken(token: string): string {
   const crypto = require('crypto');

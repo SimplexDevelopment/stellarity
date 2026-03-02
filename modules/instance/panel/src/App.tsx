@@ -14,6 +14,8 @@ import { Members } from './components/Members/Members';
 import { MemberDetail } from './components/Members/MemberDetail';
 import { Moderation } from './components/Moderation/Moderation';
 import { AuditLogs } from './components/AuditLogs/AuditLogs';
+import { Database } from './components/Database/Database';
+import { DatabaseTable } from './components/Database/DatabaseTable';
 import './App.css';
 
 const viewMeta: Record<string, { title: string; subtitle: string }> = {
@@ -25,6 +27,8 @@ const viewMeta: Record<string, { title: string; subtitle: string }> = {
   'member-detail': { title: 'MEMBER DETAIL', subtitle: 'User inspection' },
   moderation: { title: 'MODERATION', subtitle: 'Cross-server moderation oversight' },
   'audit-logs': { title: 'AUDIT LOGS', subtitle: 'Panel activity log' },
+  database: { title: 'DATABASE', subtitle: 'Direct table browser and editor' },
+  'database-table': { title: 'TABLE BROWSER', subtitle: 'View and edit table rows' },
 };
 
 const ViewRouter: React.FC = () => {
@@ -47,6 +51,10 @@ const ViewRouter: React.FC = () => {
       return <Moderation />;
     case 'audit-logs':
       return <AuditLogs />;
+    case 'database':
+      return <Database />;
+    case 'database-table':
+      return <DatabaseTable />;
     default:
       return <Dashboard />;
   }

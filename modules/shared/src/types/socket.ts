@@ -6,6 +6,9 @@ import type { Message } from './message.js';
 import type { VoiceJoinedPayload, VoiceSignal, VoiceQualityReport } from './voice.js';
 import type { DMSignal, DirectMessage } from './dm.js';
 import type { Server, Channel, Category, Role } from './server.js';
+import type { Thread, ThreadMessage } from './thread.js';
+import type { EncryptedKeyBundle } from './encryption.js';
+import type { FriendRequest } from './friend.js';
 
 // ---- Instance Socket Events (client <-> instance server) ----
 
@@ -70,6 +73,28 @@ export interface InstanceServerToClientEvents {
   'lobby:destroyed': (data: { channelId: string; serverId: string }) => void;
   'lobby:password-required': (data: { channelId: string }) => void;
 
+  // Reactions
+  'reaction:added': (data: { messageId: string; channelId: string; serverId: string; userId: string; username: string; emoji: string }) => void;
+  'reaction:removed': (data: { messageId: string; channelId: string; serverId: string; userId: string; emoji: string }) => void;
+
+  // Threads
+  'thread:created': (data: { thread: Thread }) => void;
+  'thread:updated': (data: { thread: Thread }) => void;
+  'thread:deleted': (data: { threadId: string; channelId: string; serverId: string }) => void;
+  'thread:message-new': (data: { threadId: string; message: ThreadMessage }) => void;
+  'thread:message-updated': (data: { threadId: string; message: ThreadMessage }) => void;
+  'thread:message-deleted': (data: { threadId: string; messageId: string }) => void;
+
+  // Ephemeral
+  'message:expired': (data: { channelId: string; messageId: string }) => void;
+
+  // Scheduled
+  'scheduled:delivered': (data: { scheduledId: string; message: Message }) => void;
+
+  // E2E Encryption
+  'channel:key-exchange': (data: EncryptedKeyBundle) => void;
+  'channel:key-rotated': (data: { channelId: string; rotatedAt: string }) => void;
+
   // Errors
   'error': (data: { message: string; code?: string }) => void;
 }
@@ -101,6 +126,19 @@ export interface InstanceClientToServerEvents {
   // Lobby
   'lobby:create': (data: { serverId: string; name: string; userLimit?: number; password?: string }) => void;
   'lobby:verify-password': (data: { channelId: string; password: string }, callback: (result: { success: boolean; error?: string }) => void) => void;
+
+  // Reactions
+  'reaction:add': (data: { messageId: string; channelId: string; emoji: string }) => void;
+  'reaction:remove': (data: { messageId: string; channelId: string; emoji: string }) => void;
+
+  // Threads
+  'thread:join': (threadId: string) => void;
+  'thread:leave': (threadId: string) => void;
+  'thread:message-send': (data: { threadId: string; content: string; encrypted?: boolean; replyToId?: string }) => void;
+
+  // E2E Encryption
+  'channel:register-key': (data: { channelId: string; publicKey: string }) => void;
+  'channel:key-exchange': (data: EncryptedKeyBundle) => void;
 }
 
 // ---- Central Socket Events (client <-> central server) ----
@@ -119,6 +157,14 @@ export interface CentralServerToClientEvents {
   // Notifications
   'notification:dm': (data: { senderId: string; senderUsername: string; preview: string }) => void;
 
+  // Friends
+  'friend:request-received': (data: FriendRequest) => void;
+  'friend:request-accepted': (data: { friendshipId: string; userId: string; username: string }) => void;
+  'friend:request-rejected': (data: { friendshipId: string; userId: string }) => void;
+  'friend:removed': (data: { userId: string }) => void;
+  'friend:status-update': (data: { userId: string; status: string; statusMessage: string | null }) => void;
+  'friend:blocked': (data: { userId: string }) => void;
+
   // Errors
   'error': (data: { message: string; code?: string }) => void;
 }
@@ -132,4 +178,12 @@ export interface CentralClientToServerEvents {
 
   // Presence
   'presence:update': (data: { status: string }) => void;
+
+  // Friends
+  'friend:request': (data: { recipientId: string; message?: string }) => void;
+  'friend:accept': (data: { requestId: string }) => void;
+  'friend:reject': (data: { requestId: string }) => void;
+  'friend:remove': (data: { userId: string }) => void;
+  'friend:block': (data: { userId: string }) => void;
+  'friend:unblock': (data: { userId: string }) => void;
 }

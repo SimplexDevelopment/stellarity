@@ -3,10 +3,13 @@ import { messageService } from '../services/message.service.js';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { serverService } from '../services/server.service.js';
 import { emitToServer } from '../socket/emitter.js';
+import { reactionService } from '../services/reaction.service.js';
+import { ephemeralService } from '../services/ephemeral.service.js';
 import { query } from '../database/database.js';
 import { logger } from '../utils/logger.js';
+import { ephemeralMessageSchema } from '@stellarity/shared';
 
-/** Look up author info for a list of user IDs and attach to messages */
+/** Look up author info for a list of user IDs and attach to messages, plus reactions */
 function enrichMessagesWithAuthors(messages: any[]): any[] {
   if (messages.length === 0) return messages;
   const userIds = [...new Set(messages.map(m => m.userId))];
@@ -24,9 +27,15 @@ function enrichMessagesWithAuthors(messages: any[]): any[] {
       avatarUrl: row.avatar_url || null,
     });
   }
+
+  // Batch fetch reactions for all messages
+  const messageIds = messages.map(m => m.id);
+  const reactionMap = reactionService.getReactionsBatch(messageIds);
+
   return messages.map(m => ({
     ...m,
     author: authorMap.get(m.userId) || { id: m.userId, username: 'Unknown', displayName: null, avatarUrl: null },
+    reactions: reactionMap.get(m.id) || [],
   }));
 }
 
@@ -118,6 +127,52 @@ router.post('/channels/:channelId/messages', async (req: AuthenticatedRequest, r
   } catch (error) {
     logger.error('Failed to create message:', error);
     res.status(500).json({ error: 'Failed to create message' });
+  }
+});
+
+// Create an ephemeral (self-destructing) message
+router.post('/channels/:channelId/messages/ephemeral', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { channelId } = req.params;
+    const parsed = ephemeralMessageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message || 'Invalid input' });
+    }
+
+    const channel = await serverService.getChannel(channelId);
+    if (!channel) {
+      return res.status(404).json({ error: 'Channel not found' });
+    }
+
+    const isMember = await serverService.isServerMember(channel.serverId, req.user!.userId);
+    if (!isMember) {
+      return res.status(403).json({ error: 'You do not have access to this channel' });
+    }
+
+    const message = ephemeralService.createEphemeralMessage(
+      channelId,
+      req.user!.userId,
+      parsed.data.content.trim(),
+      parsed.data.ttlSeconds,
+      parsed.data.encrypted,
+      parsed.data.replyToId
+    );
+
+    const messageWithAuthor = {
+      ...message,
+      author: {
+        id: req.user!.userId,
+        username: req.user!.username,
+        displayName: req.user!.displayName,
+        avatarUrl: req.user!.avatarUrl,
+      },
+    };
+
+    emitToServer(channel.serverId, 'message:new', messageWithAuthor);
+    res.status(201).json(messageWithAuthor);
+  } catch (error) {
+    logger.error('Failed to create ephemeral message:', error);
+    res.status(500).json({ error: 'Failed to create ephemeral message' });
   }
 });
 

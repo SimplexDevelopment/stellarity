@@ -114,9 +114,57 @@ export type {
   CentralClientToServerEvents,
 } from './types/socket.js';
 
+// New feature types
+export type {
+  MessageReaction,
+  ReactionRecord,
+  ReactionPayload,
+} from './types/reaction.js';
+
+export type {
+  Thread,
+  CreateThreadInput,
+  UpdateThreadInput,
+  ThreadMessage,
+} from './types/thread.js';
+
+export type {
+  FriendRequestStatus,
+  Friendship,
+  FriendUser,
+  FriendRequest,
+  FriendActivity,
+} from './types/friend.js';
+
+export type {
+  ChannelEncryption,
+  ChannelMemberKey,
+  KeyExchangeRequest,
+  EncryptedKeyBundle,
+} from './types/encryption.js';
+
+export type {
+  EphemeralDuration,
+  ScheduledMessage,
+  ScheduledMessageStatus,
+  CreateScheduledMessageInput,
+  CreateEphemeralMessageInput,
+} from './types/ephemeral.js';
+
 // Constants & Validation
-export { PROTOCOL_VERSION, JWT_ALGORITHM, LIMITS, PATTERNS, DEFAULT_MEMBER_PERMISSIONS } from './constants.js';
+export { PROTOCOL_VERSION, JWT_ALGORITHM, LIMITS, PATTERNS, DEFAULT_MEMBER_PERMISSIONS, apiSuccess, apiError } from './constants.js';
 export type { ApiResponse, PaginatedResponse } from './constants.js';
+
+// Errors
+export {
+  AppError,
+  BadRequestError,
+  UnauthorizedError,
+  ForbiddenError,
+  NotFoundError,
+  ConflictError,
+  RateLimitError,
+} from './errors.js';
 
 export {
   registerSchema,
@@ -142,6 +190,14 @@ export {
   adminTierOverrideSchema,
   createLobbySchema,
   serverFeaturesSchema,
+  reactionSchema,
+  createThreadSchema,
+  updateThreadSchema,
+  friendRequestSchema,
+  ephemeralMessageSchema,
+  scheduledMessageSchema,
+  updateScheduledMessageSchema,
+  channelKeyRegistrationSchema,
 } from './validation.js';
 
 export type {
@@ -162,4 +218,12 @@ export type {
   AdminTierOverrideInput,
   CreateLobbyInputValidated,
   ServerFeaturesInput,
+  ReactionInput,
+  CreateThreadInputValidated,
+  UpdateThreadInputValidated,
+  FriendRequestInput,
+  EphemeralMessageInput,
+  ScheduledMessageInput,
+  UpdateScheduledMessageInput,
+  ChannelKeyRegistrationInput,
 } from './validation.js';

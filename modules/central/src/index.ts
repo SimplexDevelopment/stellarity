@@ -8,7 +8,11 @@
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
-import { config } from './config/index.js';
+import helmet from 'helmet';
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
+import { config, validateConfig } from './config/index.js';
 import { initializeKeys, getPublicKeyPem } from './config/keys.js';
 import { migrate } from './database/migrate.js';
 import { checkConnection as checkDB, closePool } from './database/postgres.js';
@@ -23,12 +27,19 @@ import authRoutes from './routes/auth.routes.js';
 import discoveryRoutes from './routes/discovery.routes.js';
 import dmRoutes from './routes/dm.routes.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
+import friendRoutes from './routes/friend.routes.js';
 import adminRoutes from './routes/admin/index.js';
 
 const app = express();
 const server = http.createServer(app);
 
 // ── Middleware ────────────────────────────────────────────────────────
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
+
+app.use(compression());
 
 app.use(cors({
   origin: config.cors.origins,
@@ -37,16 +48,41 @@ app.use(cors({
   credentials: true,
 }));
 
+// Rate limiting — general API
+const apiLimiter = rateLimit({
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.maxRequests,
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', apiLimiter);
+
+// Rate limiting — stricter for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: config.rateLimit.authWindowMs,
+  max: config.rateLimit.authMaxRequests,
+  message: { error: 'Too many authentication attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/mfa/login', authLimiter);
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// Request logging in dev
-if (config.isDev) {
-  app.use((req, _res, next) => {
-    logger.debug(`${req.method} ${req.path}`);
-    next();
+// Request logging
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.http(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
   });
-}
+  next();
+});
 
 // ── Routes ───────────────────────────────────────────────────────────
 
@@ -54,6 +90,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/discovery', discoveryRoutes);
 app.use('/api/dm', dmRoutes);
 app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/friends', friendRoutes);
 app.use('/api/admin', adminRoutes);
 
 // ── Health Check ─────────────────────────────────────────────────────
@@ -83,6 +120,9 @@ app.use(errorHandler);
 
 async function start(): Promise<void> {
   logger.info('Starting Stellarity Central Server...');
+
+  // 0. Validate configuration
+  validateConfig();
 
   // 1. Initialize Ed25519 signing keys
   await initializeKeys();
@@ -144,16 +184,33 @@ function startCleanupTasks(): void {
 
 // ── Graceful Shutdown ────────────────────────────────────────────────
 
+let isShuttingDown = false;
+
 async function shutdown(signal: string): Promise<void> {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
   logger.info(`Received ${signal}, shutting down gracefully...`);
 
-  server.close(() => {
-    logger.info('HTTP server closed');
+  // Force-exit safety net
+  const forceTimeout = setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 15000);
+  forceTimeout.unref();
+
+  // Stop accepting new connections
+  await new Promise<void>((resolve) => {
+    server.close(() => {
+      logger.info('HTTP server closed');
+      resolve();
+    });
   });
 
   await closePool();
   logger.info('Database connections closed');
 
+  clearTimeout(forceTimeout);
   process.exit(0);
 }
 

@@ -8,7 +8,9 @@ export type PanelView =
   | 'members'
   | 'member-detail'
   | 'moderation'
-  | 'audit-logs';
+  | 'audit-logs'
+  | 'database'
+  | 'database-table';
 
 interface ConfirmDialog {
   title: string;
@@ -26,6 +28,7 @@ interface PanelUIState {
   // Detail view context
   selectedServerId: string | null;
   selectedMemberId: string | null;
+  selectedTableName: string | null;
 
   setActiveView: (view: PanelView) => void;
   toggleSidebar: () => void;
@@ -34,6 +37,7 @@ interface PanelUIState {
   closeConfirmDialog: () => void;
   viewServer: (serverId: string) => void;
   viewMember: (userId: string) => void;
+  viewTable: (tableName: string) => void;
 }
 
 export const usePanelUIStore = create<PanelUIState>()((set) => ({
@@ -42,12 +46,14 @@ export const usePanelUIStore = create<PanelUIState>()((set) => ({
   confirmDialog: null,
   selectedServerId: null,
   selectedMemberId: null,
+  selectedTableName: null,
 
-  setActiveView: (activeView) => set({ activeView, selectedServerId: null, selectedMemberId: null }),
+  setActiveView: (activeView) => set({ activeView, selectedServerId: null, selectedMemberId: null, selectedTableName: null }),
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
   showConfirmDialog: (confirmDialog) => set({ confirmDialog }),
   closeConfirmDialog: () => set({ confirmDialog: null }),
   viewServer: (serverId) => set({ activeView: 'server-detail', selectedServerId: serverId }),
   viewMember: (userId) => set({ activeView: 'member-detail', selectedMemberId: userId }),
+  viewTable: (tableName) => set({ activeView: 'database-table', selectedTableName: tableName }),
 }));

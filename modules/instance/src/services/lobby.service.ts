@@ -214,6 +214,8 @@ class LobbyService {
       createdBy: row.created_by || null,
       expiresWhenEmpty: row.expires_when_empty === 1 || row.expires_when_empty === true,
       hasPassword: row.password_hash !== null && row.password_hash !== undefined,
+      isEncrypted: row.is_encrypted === 1 || row.is_encrypted === true,
+      ephemeralDefault: row.ephemeral_default || null,
       createdAt: row.created_at,
     };
   }
