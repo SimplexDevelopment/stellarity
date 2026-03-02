@@ -1,0 +1,37 @@
+/* ============================================
+   App Layout — CSS Grid Shell
+   ============================================ */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-bg-deep);
+  color: var(--color-text-primary);
+}
+
+.app__body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.app__content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-5);
+  background: var(--color-bg-primary);
+  border-top-left-radius: var(--radius-lg);
+}
+
+/* ---- Settings Placeholder ---- */
+.settings-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}

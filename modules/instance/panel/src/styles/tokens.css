@@ -1,0 +1,113 @@
+/* ═══════════════════════════════════════════════════════════
+   STELLARITY — Instance Panel Design Tokens
+   ═══════════════════════════════════════════════════════════ */
+
+:root,
+[data-theme="command-center"] {
+  /* ── Backgrounds ─────────────────────────────────────── */
+  --color-bg-deep: #0a0a0c;
+  --color-bg-primary: #0e0e12;
+  --color-bg-secondary: #141418;
+  --color-bg-tertiary: #1a1a20;
+  --color-bg-elevated: #1e1e26;
+  --color-bg-hover: #24242e;
+  --color-bg-active: #2a2a36;
+
+  /* ── Text ────────────────────────────────────────────── */
+  --color-text-primary: #e8e6e3;
+  --color-text-secondary: #9a9a9a;
+  --color-text-muted: #5e5e5e;
+  --color-text-inverse: #0a0a0c;
+
+  /* ── Accent — teal/cyan for instance panel ───────────── */
+  --color-accent: #3ec9b0;
+  --color-accent-dim: #2a8f7c;
+  --color-accent-bright: #5ee0ca;
+  --color-accent-glow: rgba(62, 201, 176, 0.15);
+  --color-accent-border: rgba(62, 201, 176, 0.3);
+
+  /* ── Status ──────────────────────────────────────────── */
+  --color-success: #3ec96a;
+  --color-warning: #d4a843;
+  --color-danger: #e84057;
+  --color-info: #3e8ec9;
+
+  /* ── Panel-specific ──────────────────────────────────── */
+  --color-panel-bg: #121216;
+  --color-panel-border: rgba(62, 201, 176, 0.12);
+  --color-panel-header: rgba(62, 201, 176, 0.06);
+
+  /* ── Input ───────────────────────────────────────────── */
+  --color-input-bg: #0e0e12;
+  --color-input-border: #2a2a36;
+  --color-input-focus: var(--color-accent);
+
+  /* ── Scrollbar ───────────────────────────────────────── */
+  --color-scrollbar-track: #0e0e12;
+  --color-scrollbar-thumb: #2a2a36;
+  --color-scrollbar-thumb-hover: #3a3a46;
+
+  /* ── Shadows ─────────────────────────────────────────── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(62, 201, 176, 0.1);
+
+  /* ── Overlay ─────────────────────────────────────────── */
+  --color-overlay: rgba(0, 0, 0, 0.7);
+
+  /* ── Table ───────────────────────────────────────────── */
+  --color-table-header: rgba(62, 201, 176, 0.08);
+  --color-table-row-hover: rgba(62, 201, 176, 0.04);
+  --color-table-border: rgba(255, 255, 255, 0.05);
+}
+
+/* ── Shared Tokens ─────────────────────────────────────── */
+:root {
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Layout */
+  --header-height: 48px;
+  --sidebar-width: 220px;
+  --sidebar-width-collapsed: 56px;
+
+  /* Transitions */
+  --transition-fast: 120ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 350ms ease;
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --text-xs: 0.7rem;
+  --text-sm: 0.8rem;
+  --text-md: 0.9rem;
+  --text-lg: 1rem;
+  --text-xl: 1.15rem;
+  --text-2xl: 1.5rem;
+  --tracking-wide: 0.08em;
+  --tracking-wider: 0.14em;
+
+  /* Z-indexes */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+}

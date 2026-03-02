@@ -1,0 +1,13 @@
+.audit-logs .mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.text-danger { color: var(--color-danger); }
+.text-success { color: var(--color-success); }
+.text-info { color: var(--color-info); }
+.text-secondary { color: var(--color-text-secondary); }
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

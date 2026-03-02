@@ -1,0 +1,36 @@
+.servers-view {
+  animation: fadeIn 300ms ease;
+}
+
+.servers-view__toolbar {
+  margin-bottom: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+}
+
+.servers-view__toolbar .search-bar {
+  flex: 1;
+  max-width: 400px;
+}
+
+.servers-view__name-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.servers-view__name-link:hover {
+  color: var(--color-accent-bright);
+  text-decoration: underline;
+}
+
+.servers-view__actions {
+  display: flex;
+  gap: var(--space-2);
+}

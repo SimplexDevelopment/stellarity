@@ -1,0 +1,261 @@
+/* ═══════════════════════════════════════════════════════════
+   MFA — Multi-Factor Authentication Flow
+   ═══════════════════════════════════════════════════════════ */
+
+.mfa-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.mfa-dialog {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.mfa-dialog__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--panel-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mfa-dialog__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-heading);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mfa-dialog__close {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel-bg-hover);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+}
+
+.mfa-dialog__close:hover {
+  background: var(--panel-bg-active);
+  color: var(--text-primary);
+}
+
+.mfa-dialog__body {
+  padding: 20px;
+}
+
+.mfa-dialog__footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--panel-border-subtle);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Steps ──────────────────────────────────────────────── */
+.mfa-step {
+  text-align: center;
+}
+
+.mfa-step__label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.mfa-step__qr {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.mfa-step__qr img {
+  border-radius: 8px;
+  border: 2px solid var(--panel-border-subtle);
+}
+
+.mfa-step__secret {
+  background: var(--panel-bg-input);
+  border: 1px solid var(--panel-border-subtle);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-all;
+  text-align: center;
+  margin: 12px 0;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.mfa-step__secret:hover {
+  border-color: var(--accent-primary);
+}
+
+.mfa-step__secret-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── Code Input ─────────────────────────────────────────── */
+.mfa-code {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.mfa-code__digit {
+  width: 40px;
+  height: 48px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: monospace;
+  background: var(--panel-bg-input);
+  border: 2px solid var(--panel-border-subtle);
+  border-radius: 8px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.mfa-code__digit:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-primary-muted);
+}
+
+/* ── Backup Codes ───────────────────────────────────────── */
+.mfa-backup {
+  margin: 12px 0;
+}
+
+.mfa-backup__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.mfa-backup__code {
+  padding: 6px 10px;
+  background: var(--panel-bg-input);
+  border: 1px solid var(--panel-border-subtle);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.mfa-backup__warning {
+  font-size: 11px;
+  color: var(--status-warning);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+.mfa-btn {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.mfa-btn--primary {
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+}
+
+.mfa-btn--primary:hover {
+  background: var(--accent-primary-hover);
+}
+
+.mfa-btn--secondary {
+  background: var(--panel-bg-hover);
+  color: var(--text-secondary);
+}
+
+.mfa-btn--secondary:hover {
+  background: var(--panel-bg-active);
+}
+
+.mfa-btn--danger {
+  background: var(--status-dnd);
+  color: #fff;
+}
+
+.mfa-btn--danger:hover {
+  opacity: 0.9;
+}
+
+.mfa-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Error ──────────────────────────────────────────────── */
+.mfa-error {
+  font-size: 12px;
+  color: var(--status-dnd);
+  text-align: center;
+  margin: 8px 0;
+}
+
+.mfa-success {
+  font-size: 12px;
+  color: var(--accent-secondary);
+  text-align: center;
+  margin: 8px 0;
+}
+
+/* ── Login Verify ───────────────────────────────────────── */
+.mfa-verify {
+  text-align: center;
+}
+
+.mfa-verify__icon {
+  color: var(--accent-primary);
+  margin-bottom: 12px;
+}
+
+.mfa-verify__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-bottom: 8px;
+}
+
+.mfa-verify__desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}

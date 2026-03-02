@@ -1,0 +1,197 @@
+/* ═══════════════════════════════════════════════════════════
+   STELLARITY — Command Center Design Tokens
+   Admin panel theme: dark tactical, amber/gold accents
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Command Center (Default) ───────────────────────────── */
+/* Dark tactical ops center. Amber/gold accents for authority. */
+:root,
+[data-theme="command-center"] {
+  /* Backgrounds */
+  --panel-bg: #111215;
+  --panel-bg-secondary: #16181c;
+  --panel-bg-tertiary: #1c1e23;
+  --panel-bg-elevated: #22242a;
+  --panel-bg-hover: #282a32;
+  --panel-bg-active: #2e3038;
+  --panel-bg-input: #0c0d0f;
+  --panel-bg-deep: #0a0a0c;
+
+  /* Panel chrome */
+  --panel-header-bg: linear-gradient(180deg, #18191e 0%, #131417 100%);
+  --panel-border: #2a2c34;
+  --panel-border-subtle: #222329;
+  --panel-glow: rgba(245, 158, 11, 0.08);
+  --panel-glow-hover: rgba(245, 158, 11, 0.16);
+  --panel-glow-active: rgba(245, 158, 11, 0.25);
+
+  /* Text */
+  --text-primary: #e4e4e8;
+  --text-secondary: #9a9aa6;
+  --text-muted: #636370;
+  --text-accent: #f59e0b;
+  --text-on-accent: #0a0a0c;
+  --text-heading: #f0f0f4;
+
+  /* Accents — amber/gold */
+  --accent-primary: #f59e0b;
+  --accent-primary-hover: #d97706;
+  --accent-primary-muted: rgba(245, 158, 11, 0.12);
+  --accent-secondary: #fb923c;
+  --accent-secondary-muted: rgba(251, 146, 60, 0.12);
+
+  /* Status */
+  --status-online: #4ade80;
+  --status-online-glow: rgba(74, 222, 128, 0.3);
+  --status-idle: #facc15;
+  --status-dnd: #f87171;
+  --status-offline: #636370;
+  --status-warning: #f59e0b;
+  --status-warning-muted: rgba(245, 158, 11, 0.15);
+  --status-danger: #ef4444;
+  --status-danger-muted: rgba(239, 68, 68, 0.15);
+  --status-success: #4ade80;
+  --status-success-muted: rgba(74, 222, 128, 0.15);
+  --status-info: #38bdf8;
+  --status-info-muted: rgba(56, 189, 248, 0.15);
+
+  /* Telemetry */
+  --telemetry-bg: linear-gradient(180deg, #141518 0%, #0e0f11 100%);
+  --telemetry-segment-bg: #16181c;
+  --telemetry-segment-border: #2a2c34;
+  --telemetry-ticker-color: #4a4a55;
+
+  /* Input */
+  --input-bg: #0c0d0f;
+  --input-border: #2a2c34;
+  --input-border-focus: #f59e0b;
+  --input-placeholder: #4a4a55;
+
+  /* Scrollbar */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #2a2c34;
+  --scrollbar-thumb-hover: #3a3a42;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(245, 158, 11, 0.1);
+
+  /* Overlay */
+  --overlay-bg: rgba(5, 5, 7, 0.75);
+  --overlay-blur: 8px;
+
+  /* Specific */
+  --avatar-border: #2a2c34;
+  --avatar-bg: #22242a;
+  --badge-bg: #ef4444;
+  --badge-text: #ffffff;
+  --divider: #2a2c34;
+  --selection-bg: rgba(245, 158, 11, 0.2);
+
+  /* Animation colors */
+  --starfield-dot: rgba(245, 158, 11, 0.12);
+  --grid-line: rgba(245, 158, 11, 0.03);
+  --glow-primary: rgba(245, 158, 11, 0.3);
+  --glow-secondary: rgba(251, 146, 60, 0.3);
+
+  /* Admin-specific colors */
+  --admin-rank-superadmin: #f59e0b;
+  --admin-rank-admin: #38bdf8;
+  --tier-free: #9a9aa6;
+  --tier-pro: #a78bfa;
+  --tier-enterprise: #f59e0b;
+
+  /* Chart / data-viz */
+  --chart-1: #f59e0b;
+  --chart-2: #38bdf8;
+  --chart-3: #4ade80;
+  --chart-4: #a78bfa;
+  --chart-5: #fb923c;
+  --chart-6: #f87171;
+
+  /* Table */
+  --table-header-bg: #16181c;
+  --table-row-hover: #1c1e23;
+  --table-row-stripe: #131417;
+  --table-border: #222329;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED (non-theme) TOKENS
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --spacing-xs: var(--space-1);
+  --spacing-sm: var(--space-2);
+  --spacing-md: var(--space-3);
+  --spacing-lg: var(--space-4);
+  --spacing-xl: var(--space-6);
+
+  /* Border radius */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Layout dimensions */
+  --titlebar-height: 32px;
+  --telemetry-height: 36px;
+  --statusdock-height: 44px;
+  --sidebar-width: 220px;
+  --sidebar-width-collapsed: 56px;
+
+  /* Transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 120ms var(--ease-in-out);
+  --transition-normal: 200ms var(--ease-in-out);
+  --transition-slow: 350ms var(--ease-out-expo);
+  --transition-panel: 300ms var(--ease-out-expo);
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.05em;
+  --tracking-wider: 0.1em;
+  --tracking-widest: 0.2em;
+
+  /* Z-index scale */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-titlebar: 600;
+}

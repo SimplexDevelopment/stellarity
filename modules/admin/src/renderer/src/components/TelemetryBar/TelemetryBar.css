@@ -1,0 +1,64 @@
+/* ── TelemetryBar ─────────────────────────────────────── */
+.telemetry-bar {
+  grid-area: telemetry;
+  display: flex;
+  align-items: center;
+  height: var(--telemetry-height);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 0 var(--spacing-sm);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  gap: 0;
+}
+
+.telemetry-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 var(--spacing-sm);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.telemetry-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.telemetry-value {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.telemetry-value--online  { color: var(--status-online); }
+.telemetry-value--accent  { color: var(--accent-primary); }
+
+.telemetry-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.telemetry-icon--online { color: var(--status-online); }
+
+.telemetry-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--panel-border);
+  flex-shrink: 0;
+}
+
+.telemetry-spacer {
+  flex: 1;
+}
+
+.telemetry-ticker {
+  overflow: hidden;
+  max-width: 480px;
+  position: relative;
+  mask-image: linear-gradient(90deg, transparent, black 8px, black calc(100% - 8px), transparent);
+}

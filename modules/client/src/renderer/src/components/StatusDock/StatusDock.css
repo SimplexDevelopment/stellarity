@@ -1,0 +1,161 @@
+/* ── StatusDock ───────────────────────────────────────── */
+.statusdock {
+  grid-area: statusdock;
+  display: flex;
+  align-items: center;
+  height: var(--statusdock-height);
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border);
+  padding: 0 var(--spacing-sm);
+  font-family: var(--font-mono);
+  gap: var(--spacing-xs);
+}
+
+/* ── User badge ─────────────────────────────────────── */
+.statusdock-user {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 2px var(--spacing-xs);
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+
+.statusdock-avatar {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-primary);
+  color: var(--panel-bg);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.statusdock-status-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--status-online);
+  border: 1.5px solid var(--panel-bg);
+}
+
+.statusdock-userinfo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.statusdock-username {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusdock-usertag {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* ── Divider ────────────────────────────────────────── */
+.statusdock-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--panel-border);
+  flex-shrink: 0;
+}
+
+/* ── Voice info ─────────────────────────────────────── */
+.statusdock-voice {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.statusdock-voice-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusdock-voice-signal {
+  color: var(--status-online);
+}
+
+.statusdock-voice-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--status-online);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusdock-voice-count {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 255, 136, 0.12);
+  color: var(--status-online);
+  font-weight: 600;
+}
+
+.statusdock-speaking-icon {
+  color: var(--status-online);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+/* ── Voice controls ─────────────────────────────────── */
+.statusdock-voice-controls {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.statusdock-ctrl {
+  width: 30px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.statusdock-ctrl:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.statusdock-ctrl--danger {
+  color: var(--status-danger);
+}
+
+.statusdock-ctrl--danger:hover {
+  background: rgba(255, 59, 92, 0.12);
+}
+
+.statusdock-ctrl--disconnect {
+  color: var(--status-danger);
+}
+
+.statusdock-ctrl--disconnect:hover {
+  background: var(--status-danger);
+  color: white;
+}

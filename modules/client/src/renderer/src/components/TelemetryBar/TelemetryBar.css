@@ -1,0 +1,111 @@
+/* ── TelemetryBar ─────────────────────────────────────── */
+.telemetry-bar {
+  grid-area: telemetry;
+  display: flex;
+  align-items: center;
+  height: var(--telemetry-height);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  padding: 0 var(--spacing-sm);
+  font-family: var(--font-mono);
+  overflow: visible;
+  gap: 0;
+}
+
+/* Readout cell */
+.telemetry-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 var(--spacing-sm);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.telemetry-cell--wide {
+  min-width: 80px;
+}
+
+.telemetry-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.telemetry-value {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.telemetry-value--online  { color: var(--status-online); }
+.telemetry-value--offline { color: var(--text-muted); }
+.telemetry-value--good    { color: var(--status-online); }
+.telemetry-value--warn    { color: var(--status-warning); }
+.telemetry-value--bad     { color: var(--status-danger); }
+.telemetry-value--accent  { color: var(--accent-primary); }
+
+/* Icons */
+.telemetry-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.telemetry-icon--online  { color: var(--status-online); }
+.telemetry-icon--offline { color: var(--text-muted); }
+.telemetry-icon--good    { color: var(--status-online); }
+.telemetry-icon--warn    { color: var(--status-warning); }
+.telemetry-icon--bad     { color: var(--status-danger); }
+
+/* Vertical divider */
+.telemetry-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--panel-border);
+  flex-shrink: 0;
+}
+
+/* Push remaining to right */
+.telemetry-spacer {
+  flex: 1;
+}
+
+/* Vertical scrolling ticker (top → bottom marquee) */
+.telemetry-ticker {
+  overflow: hidden;
+  max-width: 360px;
+  height: 16px;
+  position: relative;
+  mask-image: linear-gradient(180deg, transparent, black 2px, black calc(100% - 2px), transparent);
+}
+
+.telemetry-ticker__track {
+  display: flex;
+  flex-direction: column;
+  animation: ticker-scroll-down 25s ease-in-out infinite;
+}
+
+.telemetry-ticker__item {
+  height: 16px;
+  line-height: 16px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+/* 6 DOM items (5 unique + 1 duplicate for seamless loop).
+   Each step = 16.667% of track height.
+   Animation scrolls downward: translateY increases, items enter from top. */
+@keyframes ticker-scroll-down {
+  0%,   18% { transform: translateY(-83.333%); }   /* STELLARITY       */
+  20%,  38% { transform: translateY(-66.667%); }   /* OPERATOR         */
+  40%,  58% { transform: translateY(-50%);      }   /* SESSION           */
+  60%,  78% { transform: translateY(-33.333%); }   /* ENCRYPTION       */
+  80%,  96% { transform: translateY(-16.667%); }   /* PROTOCOL         */
+  100%      { transform: translateY(0%);        }   /* dup → seamless   */
+}

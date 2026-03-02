@@ -1,0 +1,247 @@
+﻿/* ── Voice Channel UI ────────────────────────────────── */
+.voice {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  font-family: var(--font-mono);
+}
+
+.voice__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 42px;
+  padding: 0 var(--spacing-md);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+}
+
+.voice__channel-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.voice__channel-icon { color: var(--status-online); }
+
+.voice__channel-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.voice__connection {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.voice__status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--text-muted);
+}
+
+.voice__status-dot--connected {
+  background: var(--status-online);
+  box-shadow: 0 0 6px var(--status-online);
+}
+
+.voice__status-dot--connecting {
+  background: var(--status-warning);
+  animation: pulse-glow 1s infinite;
+}
+
+.voice__status-text {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ── Content area ────────────────────────────────────── */
+.voice__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md);
+  overflow-y: auto;
+}
+
+/* ── Join prompt ─────────────────────────────────────── */
+.voice__join {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.voice__join-icon {
+  color: var(--text-muted);
+  opacity: 0.4;
+  margin-bottom: var(--spacing-md);
+}
+
+.voice__join h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.voice__join p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.voice__join-btn {
+  gap: var(--spacing-xs);
+}
+
+/* ── User grid ───────────────────────────────────────── */
+.voice__grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: var(--spacing-sm);
+  align-content: start;
+  margin-bottom: var(--spacing-md);
+}
+
+.voice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-sm);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.voice-card--speaking {
+  border-color: var(--status-online);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
+}
+
+.voice-card--self {
+  background: rgba(var(--accent-primary-rgb, 0, 212, 255), 0.04);
+}
+
+.voice-card__avatar {
+  position: relative;
+  margin-bottom: var(--spacing-xs);
+}
+
+.voice-card__ring {
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--status-online);
+  border-radius: inherit;
+  animation: speakingPulse 1s ease-out infinite;
+}
+
+.voice-card__info { text-align: center; }
+
+.voice-card__name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.voice-card__icons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.voice-card__icon--mute,
+.voice-card__icon--deaf {
+  color: var(--status-danger);
+  opacity: 0.8;
+}
+
+.voice__no-users {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--spacing-xl);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ── Controls ────────────────────────────────────────── */
+.voice__controls {
+  padding: var(--spacing-md);
+}
+
+.voice__controls-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.voice__ctrl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-md);
+  min-width: 72px;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.voice__ctrl:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.voice__ctrl--active {
+  background: rgba(255, 59, 92, 0.12);
+  color: var(--status-danger);
+}
+
+.voice__ctrl--disconnect {
+  background: rgba(255, 59, 92, 0.12);
+  color: var(--status-danger);
+}
+
+.voice__ctrl--disconnect:hover {
+  background: var(--status-danger);
+  color: white;
+}
+
+.voice__ctrl span {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* ── Bitrate ─────────────────────────────────────────── */
+.voice__bitrate {
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--panel-border);
+}
+
+.voice__bitrate label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.voice__bitrate input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent-primary);
+}

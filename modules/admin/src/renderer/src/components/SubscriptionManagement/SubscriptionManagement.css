@@ -1,0 +1,44 @@
+.sub-stats-row {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.sub-stats-row .stat-card {
+  min-width: 120px;
+}
+
+.stat-card--tier-free { border-left-color: var(--color-text-muted); }
+.stat-card--tier-starter { border-left-color: var(--tier-starter); }
+.stat-card--tier-pro { border-left-color: var(--tier-pro); }
+.stat-card--tier-enterprise { border-left-color: var(--tier-enterprise); }
+
+.tier-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tier-edit select {
+  width: auto;
+  min-width: 100px;
+}
+
+.username {
+  display: block;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.sub-text {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}

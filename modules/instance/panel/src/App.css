@@ -1,0 +1,42 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+.app__body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.app__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app__content-inner {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-6);
+}
+
+/* Scrollbar styling for main content */
+.app__content-inner::-webkit-scrollbar {
+  width: 6px;
+}
+.app__content-inner::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app__content-inner::-webkit-scrollbar-thumb {
+  background: var(--color-bg-tertiary);
+  border-radius: 3px;
+}
+.app__content-inner::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border);
+}

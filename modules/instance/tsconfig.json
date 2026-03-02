@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "composite": false,
+    "paths": {
+      "@/*": ["src/*"],
+      "@stellarity/shared": ["../shared/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../shared" }
+  ]
+}

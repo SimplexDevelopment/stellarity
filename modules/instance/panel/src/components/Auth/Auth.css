@@ -1,0 +1,111 @@
+.auth-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--color-bg-deep);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 400px;
+  max-width: 90vw;
+  padding: var(--space-8);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-panel-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  animation: scaleIn 400ms ease;
+}
+
+.auth-logo {
+  color: var(--color-accent);
+  margin-bottom: var(--space-5);
+}
+
+.auth-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-accent);
+  margin-bottom: var(--space-2);
+}
+
+.auth-subtitle {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+}
+
+.auth-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.auth-label {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-text-muted);
+}
+
+.auth-input {
+  padding: var(--space-3) var(--space-4) !important;
+  font-size: var(--text-md) !important;
+  letter-spacing: 0.2em;
+}
+
+.auth-error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  background: rgba(232, 64, 87, 0.08);
+  border: 1px solid rgba(232, 64, 87, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.auth-error__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--color-danger);
+  color: #fff;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.auth-submit {
+  width: 100%;
+  justify-content: center;
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.auth-footer {
+  margin-top: var(--space-6);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}

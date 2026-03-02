@@ -1,0 +1,346 @@
+/* ═══════════════════════════════════════════════════════════
+   DIRECT MESSAGES — DM Panel
+   ═══════════════════════════════════════════════════════════ */
+
+.dm-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.dm-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--panel-border-subtle);
+  background: var(--panel-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dm-header__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-heading);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dm-header__badge {
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ── Conversation List ──────────────────────────────────── */
+.dm-conversations {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.dm-conversation {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.dm-conversation:hover {
+  background: var(--panel-bg-hover);
+}
+
+.dm-conversation.active {
+  background: var(--panel-bg-active);
+}
+
+.dm-conversation__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--panel-bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-accent);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.dm-conversation__avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dm-conversation__status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--panel-bg);
+  background: var(--status-offline);
+}
+
+.dm-conversation__status--online {
+  background: var(--status-online);
+}
+
+.dm-conversation__status--idle {
+  background: var(--status-idle);
+}
+
+.dm-conversation__status--dnd {
+  background: var(--status-dnd);
+}
+
+.dm-conversation__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dm-conversation__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dm-conversation__preview {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dm-conversation__time {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.dm-conversation__unread {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+/* ── Pending Banner ─────────────────────────────────────── */
+.dm-pending {
+  padding: 10px 16px;
+  background: var(--status-warning-muted);
+  border-bottom: 1px solid var(--panel-border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.dm-pending__text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--status-warning);
+}
+
+.dm-pending__action {
+  font-size: 11px;
+  color: var(--text-accent);
+  text-decoration: underline;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* ── Chat Area ──────────────────────────────────────────── */
+.dm-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dm-chat__messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.dm-chat__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  text-align: center;
+  gap: 8px;
+}
+
+.dm-chat__empty-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dm-chat__empty-sub {
+  font-size: 12px;
+}
+
+.dm-chat__input-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--panel-border-subtle);
+  background: var(--panel-bg);
+}
+
+.dm-chat__input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--panel-bg-input);
+  border: 1px solid var(--panel-border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.dm-chat__input:focus {
+  border-color: var(--accent-primary);
+}
+
+.dm-chat__send {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent-primary);
+  color: var(--text-on-accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dm-chat__send:hover {
+  background: var(--accent-primary-hover);
+}
+
+.dm-chat__send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Empty State ────────────────────────────────────────── */
+.dm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  gap: 8px;
+  text-align: center;
+  padding: 40px;
+}
+
+.dm-empty__icon {
+  opacity: 0.25;
+}
+
+.dm-empty__text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dm-empty__sub {
+  font-size: 12px;
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.dm-layout {
+  display: flex;
+  height: 100%;
+}
+
+.dm-sidebar {
+  width: 260px;
+  border-right: 1px solid var(--panel-border-subtle);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-bg-secondary);
+}
+
+.dm-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── DM Message ─────────────────────────────────────────── */
+.dm-message {
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.dm-message__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--panel-bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-accent);
+  flex-shrink: 0;
+}
+
+.dm-message__content {
+  flex: 1;
+}
+
+.dm-message__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.dm-message__sender {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dm-message__time {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.dm-message__text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}

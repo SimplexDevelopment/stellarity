@@ -1,0 +1,118 @@
+/* =======================================================
+   STELLARITY - App Shell Layout (CSS Grid)
+   ======================================================= */
+
+.app {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: var(--titlebar-height) var(--telemetry-height) 1fr var(--statusdock-height);
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "titlebar"
+    "telemetry"
+    "content"
+    "statusdock";
+  background: var(--panel-bg-deep);
+  overflow: hidden;
+  position: relative;
+}
+
+/* -- Loading state ---------------------------------------- */
+.app--loading {
+  grid-template-rows: var(--titlebar-height) 1fr;
+  grid-template-areas:
+    "titlebar"
+    "content";
+}
+
+.loading-screen {
+  grid-area: content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  position: relative;
+}
+
+.loading-screen__diamond {
+  font-size: 48px;
+  color: var(--accent-primary);
+  animation: spin 3s linear infinite;
+  filter: drop-shadow(0 0 12px var(--glow-primary));
+}
+
+.loading-screen__text {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-widest);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* -- Unauth state ----------------------------------------- */
+.app--unauth {
+  grid-template-rows: var(--titlebar-height) 1fr;
+  grid-template-areas:
+    "titlebar"
+    "content";
+}
+
+/* -- Main content area ------------------------------------ */
+.app-body {
+  grid-area: content;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* -- Sidebar strip ---------------------------------------- */
+.app-sidebar {
+  flex-shrink: 0;
+}
+
+/* -- Channel panel ---------------------------------------- */
+.app-channelpanel {
+  width: var(--channelpanel-width);
+  border-right: 1px solid var(--panel-border);
+  background: var(--panel-bg-secondary);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* -- Main Viewport ---------------------------------------- */
+.app-viewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* -- Member List Overlay ---------------------------------- */
+.app-memberlist-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--memberlist-width);
+  z-index: var(--z-overlay);
+  transform: translateX(100%);
+  transition: transform var(--transition-panel);
+  border-left: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: var(--shadow-lg);
+}
+
+.app-memberlist-overlay--open {
+  transform: translateX(0);
+}
+
+/* -- Status Dock ------------------------------------------ */
+.app-statusdock {
+  border-top: 1px solid var(--panel-border);
+  background: var(--panel-bg-secondary);
+}

@@ -1,0 +1,159 @@
+/* =======================================================
+   STELLARITY — Command Center Animations
+   ======================================================= */
+
+/* -- Grid Overlay ----------------------------------------- */
+.grid-overlay {
+  position: relative;
+}
+.grid-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: grid-drift 60s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes grid-drift {
+  from { background-position: 0 0; }
+  to   { background-position: 40px 40px; }
+}
+
+/* -- Scan Line -------------------------------------------- */
+@keyframes scan-sweep {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+.scan-sweep::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  animation: scan-sweep 6s linear infinite;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* -- Pulse Glow ------------------------------------------- */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 4px var(--panel-glow); }
+  50%      { box-shadow: 0 0 16px var(--panel-glow-hover); }
+}
+.animate-glow {
+  animation: pulse-glow 8s ease-in-out infinite;
+}
+
+/* -- Entrance Animations ---------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -- Spin ------------------------------------------------- */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1.2s linear infinite;
+}
+
+/* -- Data Ticker ------------------------------------------ */
+.data-ticker {
+  overflow: hidden;
+  position: relative;
+  height: 14px;
+}
+.data-ticker__track {
+  display: flex;
+  gap: var(--space-6);
+  position: absolute;
+  white-space: nowrap;
+  animation: ticker-scroll 45s linear infinite;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: var(--tracking-wide);
+  color: var(--telemetry-ticker-color);
+  text-transform: uppercase;
+}
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* -- Metric Count-Up Flash -------------------------------- */
+@keyframes metricFlash {
+  0%   { color: var(--accent-primary); text-shadow: 0 0 8px var(--glow-primary); }
+  100% { color: var(--text-primary); text-shadow: none; }
+}
+.metric-flash {
+  animation: metricFlash 1s ease-out;
+}
+
+/* -- Bar Chart Fill --------------------------------------- */
+@keyframes barGrow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.bar-grow {
+  transform-origin: bottom;
+  animation: barGrow 0.6s var(--ease-out-expo) forwards;
+}
+
+/* -- Status Beacon ---------------------------------------- */
+@keyframes beacon {
+  0%   { box-shadow: 0 0 0 0 var(--status-online-glow); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.animate-beacon {
+  animation: beacon 2s ease-out infinite;
+}
+
+/* -- Power Up (Auth transition) --------------------------- */
+@keyframes powerUp {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(1.3); }
+  100% { filter: brightness(1); opacity: 0; transform: scale(1.02); }
+}
+
+/* -- Reduced Motion --------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

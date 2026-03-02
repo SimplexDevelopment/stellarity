@@ -1,0 +1,416 @@
+/* ═══════════════════════════════════════════════════════════
+   STELLARITY — Design Tokens
+   4 themes: Clinical (default), Cyan Navy, Violet Nebula, Multi-Zone
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Clinical (Default) ─────────────────────────────────── */
+/* Bright, clean, Apple-meets-starship. White/gray panels, teal accents. */
+:root,
+[data-theme="clinical"] {
+  /* Backgrounds */
+  --panel-bg: #ffffff;
+  --panel-bg-secondary: #f4f6f9;
+  --panel-bg-tertiary: #eaeff4;
+  --panel-bg-elevated: #ffffff;
+  --panel-bg-hover: #e8edf3;
+  --panel-bg-active: #dce4ed;
+  --panel-bg-input: #f0f3f7;
+  --panel-bg-deep: #f8f9fb;
+
+  /* Panel chrome */
+  --panel-header-bg: linear-gradient(180deg, #f8fafb 0%, #eff2f6 100%);
+  --panel-border: #d4dbe5;
+  --panel-border-subtle: #e2e8f0;
+  --panel-glow: rgba(14, 165, 233, 0.08);
+  --panel-glow-hover: rgba(14, 165, 233, 0.18);
+  --panel-glow-active: rgba(14, 165, 233, 0.25);
+
+  /* Text */
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a5568;
+  --text-muted: #8896a7;
+  --text-accent: #0891b2;
+  --text-on-accent: #ffffff;
+  --text-heading: #0f172a;
+
+  /* Accents */
+  --accent-primary: #0ea5e9;
+  --accent-primary-hover: #0284c7;
+  --accent-primary-muted: rgba(14, 165, 233, 0.12);
+  --accent-secondary: #10b981;
+  --accent-secondary-muted: rgba(16, 185, 129, 0.12);
+
+  /* Status */
+  --status-online: #22c55e;
+  --status-online-glow: rgba(34, 197, 94, 0.3);
+  --status-idle: #eab308;
+  --status-dnd: #ef4444;
+  --status-offline: #94a3b8;
+  --status-warning: #f59e0b;
+  --status-warning-muted: rgba(245, 158, 11, 0.12);
+  --status-danger: #ef4444;
+  --status-danger-muted: rgba(239, 68, 68, 0.12);
+  --status-success: #22c55e;
+  --status-success-muted: rgba(34, 197, 94, 0.12);
+
+  /* Telemetry */
+  --telemetry-bg: linear-gradient(180deg, #f0f3f7 0%, #e8ecf1 100%);
+  --telemetry-segment-bg: #ffffff;
+  --telemetry-segment-border: #d4dbe5;
+  --telemetry-ticker-color: #94a3b8;
+
+  /* Input */
+  --input-bg: #f0f3f7;
+  --input-border: #d4dbe5;
+  --input-border-focus: #0ea5e9;
+  --input-placeholder: #94a3b8;
+
+  /* Scrollbar */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c4cdd8;
+  --scrollbar-thumb-hover: #a0aec0;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 20px rgba(14, 165, 233, 0.1);
+
+  /* Overlay */
+  --overlay-bg: rgba(15, 23, 42, 0.4);
+  --overlay-blur: 8px;
+
+  /* Specific */
+  --avatar-border: #d4dbe5;
+  --avatar-bg: #e8ecf1;
+  --badge-bg: #ef4444;
+  --badge-text: #ffffff;
+  --divider: #e2e8f0;
+  --selection-bg: rgba(14, 165, 233, 0.2);
+
+  /* Animation colors */
+  --starfield-dot: rgba(14, 165, 233, 0.15);
+  --grid-line: rgba(14, 165, 233, 0.04);
+  --glow-primary: rgba(14, 165, 233, 0.3);
+  --glow-secondary: rgba(16, 185, 129, 0.3);
+}
+
+/* ── Cyan Navy ──────────────────────────────────────────── */
+/* Deep space blues & cyans. Classic sci-fi dark. */
+[data-theme="cyan-navy"] {
+  --panel-bg: #0d1117;
+  --panel-bg-secondary: #111922;
+  --panel-bg-tertiary: #151f2b;
+  --panel-bg-elevated: #1a2535;
+  --panel-bg-hover: #1f2d3f;
+  --panel-bg-active: #243548;
+  --panel-bg-input: #0a0f16;
+  --panel-bg-deep: #080c12;
+
+  --panel-header-bg: linear-gradient(180deg, #131b26 0%, #0f161f 100%);
+  --panel-border: #1e2d3d;
+  --panel-border-subtle: #172030;
+  --panel-glow: rgba(0, 212, 255, 0.1);
+  --panel-glow-hover: rgba(0, 212, 255, 0.2);
+  --panel-glow-active: rgba(0, 212, 255, 0.3);
+
+  --text-primary: #e2e8f0;
+  --text-secondary: #8a9bb0;
+  --text-muted: #5a6a7e;
+  --text-accent: #00d4ff;
+  --text-on-accent: #0a0e17;
+  --text-heading: #f1f5f9;
+
+  --accent-primary: #00d4ff;
+  --accent-primary-hover: #00b8e6;
+  --accent-primary-muted: rgba(0, 212, 255, 0.12);
+  --accent-secondary: #00ff88;
+  --accent-secondary-muted: rgba(0, 255, 136, 0.12);
+
+  --status-online: #00ff88;
+  --status-online-glow: rgba(0, 255, 136, 0.3);
+  --status-idle: #ffaa00;
+  --status-dnd: #ff3b5c;
+  --status-offline: #5a6a7e;
+  --status-warning: #ff9500;
+  --status-warning-muted: rgba(255, 149, 0, 0.12);
+  --status-danger: #ff3b5c;
+  --status-danger-muted: rgba(255, 59, 92, 0.12);
+  --status-success: #00ff88;
+  --status-success-muted: rgba(0, 255, 136, 0.12);
+
+  --telemetry-bg: linear-gradient(180deg, #0f161f 0%, #0b1018 100%);
+  --telemetry-segment-bg: #111922;
+  --telemetry-segment-border: #1e2d3d;
+  --telemetry-ticker-color: #3a4f65;
+
+  --input-bg: #0a0f16;
+  --input-border: #1e2d3d;
+  --input-border-focus: #00d4ff;
+  --input-placeholder: #3a4f65;
+
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #1e2d3d;
+  --scrollbar-thumb-hover: #2a3d50;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.15);
+
+  --overlay-bg: rgba(5, 8, 13, 0.7);
+  --overlay-blur: 8px;
+
+  --avatar-border: #1e2d3d;
+  --avatar-bg: #1a2535;
+  --badge-bg: #ff3b5c;
+  --badge-text: #ffffff;
+  --divider: #1e2d3d;
+  --selection-bg: rgba(0, 212, 255, 0.25);
+
+  --starfield-dot: rgba(0, 212, 255, 0.2);
+  --grid-line: rgba(0, 212, 255, 0.03);
+  --glow-primary: rgba(0, 212, 255, 0.3);
+  --glow-secondary: rgba(0, 255, 136, 0.3);
+}
+
+/* ── Violet Nebula ──────────────────────────────────────── */
+/* Deep purples, violet/magenta accents, nebula glow. */
+[data-theme="violet-nebula"] {
+  --panel-bg: #0f0a1a;
+  --panel-bg-secondary: #150f24;
+  --panel-bg-tertiary: #1a132e;
+  --panel-bg-elevated: #221a38;
+  --panel-bg-hover: #2a2042;
+  --panel-bg-active: #32264c;
+  --panel-bg-input: #0b0714;
+  --panel-bg-deep: #08050f;
+
+  --panel-header-bg: linear-gradient(180deg, #170f26 0%, #120a1e 100%);
+  --panel-border: #2a1f42;
+  --panel-border-subtle: #201838;
+  --panel-glow: rgba(167, 139, 250, 0.1);
+  --panel-glow-hover: rgba(167, 139, 250, 0.2);
+  --panel-glow-active: rgba(167, 139, 250, 0.35);
+
+  --text-primary: #ede9fe;
+  --text-secondary: #a5a0c8;
+  --text-muted: #6d6890;
+  --text-accent: #a78bfa;
+  --text-on-accent: #0f0a1a;
+  --text-heading: #f5f3ff;
+
+  --accent-primary: #a78bfa;
+  --accent-primary-hover: #8b5cf6;
+  --accent-primary-muted: rgba(167, 139, 250, 0.12);
+  --accent-secondary: #e879f9;
+  --accent-secondary-muted: rgba(232, 121, 249, 0.12);
+
+  --status-online: #34d399;
+  --status-online-glow: rgba(52, 211, 153, 0.3);
+  --status-idle: #fbbf24;
+  --status-dnd: #f87171;
+  --status-offline: #6d6890;
+  --status-warning: #fbbf24;
+  --status-warning-muted: rgba(251, 191, 36, 0.12);
+  --status-danger: #f87171;
+  --status-danger-muted: rgba(248, 113, 113, 0.12);
+  --status-success: #34d399;
+  --status-success-muted: rgba(52, 211, 153, 0.12);
+
+  --telemetry-bg: linear-gradient(180deg, #130d20 0%, #0d0918 100%);
+  --telemetry-segment-bg: #150f24;
+  --telemetry-segment-border: #2a1f42;
+  --telemetry-ticker-color: #4a4068;
+
+  --input-bg: #0b0714;
+  --input-border: #2a1f42;
+  --input-border-focus: #a78bfa;
+  --input-placeholder: #4a4068;
+
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #2a1f42;
+  --scrollbar-thumb-hover: #3a2d55;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(167, 139, 250, 0.15);
+
+  --overlay-bg: rgba(8, 5, 15, 0.7);
+  --overlay-blur: 8px;
+
+  --avatar-border: #2a1f42;
+  --avatar-bg: #221a38;
+  --badge-bg: #e879f9;
+  --badge-text: #0f0a1a;
+  --divider: #2a1f42;
+  --selection-bg: rgba(167, 139, 250, 0.25);
+
+  --starfield-dot: rgba(167, 139, 250, 0.2);
+  --grid-line: rgba(167, 139, 250, 0.03);
+  --glow-primary: rgba(167, 139, 250, 0.3);
+  --glow-secondary: rgba(232, 121, 249, 0.3);
+}
+
+/* ── Multi-Zone ─────────────────────────────────────────── */
+/* Dark neutral base, functional color-coding. Warm + cool mixed. */
+[data-theme="multi-zone"] {
+  --panel-bg: #131315;
+  --panel-bg-secondary: #19191c;
+  --panel-bg-tertiary: #1f1f23;
+  --panel-bg-elevated: #26262b;
+  --panel-bg-hover: #2c2c32;
+  --panel-bg-active: #333339;
+  --panel-bg-input: #0e0e10;
+  --panel-bg-deep: #0a0a0c;
+
+  --panel-header-bg: linear-gradient(180deg, #1b1b1f 0%, #151518 100%);
+  --panel-border: #2a2a30;
+  --panel-border-subtle: #222228;
+  --panel-glow: rgba(56, 189, 248, 0.08);
+  --panel-glow-hover: rgba(56, 189, 248, 0.16);
+  --panel-glow-active: rgba(56, 189, 248, 0.25);
+
+  --text-primary: #e4e4e8;
+  --text-secondary: #9a9aa6;
+  --text-muted: #636370;
+  --text-accent: #38bdf8;
+  --text-on-accent: #0a0a0c;
+  --text-heading: #f0f0f4;
+
+  --accent-primary: #38bdf8;
+  --accent-primary-hover: #0ea5e9;
+  --accent-primary-muted: rgba(56, 189, 248, 0.12);
+  --accent-secondary: #22d3ee;
+  --accent-secondary-muted: rgba(34, 211, 238, 0.12);
+
+  --status-online: #4ade80;
+  --status-online-glow: rgba(74, 222, 128, 0.3);
+  --status-idle: #facc15;
+  --status-dnd: #f87171;
+  --status-offline: #636370;
+  --status-warning: #f59e0b;
+  --status-warning-muted: rgba(245, 158, 11, 0.15);
+  --status-danger: #ef4444;
+  --status-danger-muted: rgba(239, 68, 68, 0.15);
+  --status-success: #4ade80;
+  --status-success-muted: rgba(74, 222, 128, 0.15);
+
+  --telemetry-bg: linear-gradient(180deg, #171719 0%, #111113 100%);
+  --telemetry-segment-bg: #19191c;
+  --telemetry-segment-border: #2a2a30;
+  --telemetry-ticker-color: #4a4a55;
+
+  --input-bg: #0e0e10;
+  --input-border: #2a2a30;
+  --input-border-focus: #38bdf8;
+  --input-placeholder: #4a4a55;
+
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #2a2a30;
+  --scrollbar-thumb-hover: #3a3a42;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.1);
+
+  --overlay-bg: rgba(5, 5, 7, 0.75);
+  --overlay-blur: 8px;
+
+  --avatar-border: #2a2a30;
+  --avatar-bg: #26262b;
+  --badge-bg: #ef4444;
+  --badge-text: #ffffff;
+  --divider: #2a2a30;
+  --selection-bg: rgba(56, 189, 248, 0.2);
+
+  --starfield-dot: rgba(56, 189, 248, 0.15);
+  --grid-line: rgba(56, 189, 248, 0.03);
+  --glow-primary: rgba(56, 189, 248, 0.3);
+  --glow-secondary: rgba(34, 211, 238, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED (non-theme) TOKENS
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Spacing aliases (used by component CSS) */
+  --spacing-xs: var(--space-1);   /* 4px */
+  --spacing-sm: var(--space-2);   /* 8px */
+  --spacing-md: var(--space-3);   /* 12px */
+  --spacing-lg: var(--space-4);   /* 16px */
+  --spacing-xl: var(--space-6);   /* 24px */
+
+  /* Border radius */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Layout dimensions */
+  --titlebar-height: 32px;
+  --telemetry-height: 36px;
+  --statusdock-height: 52px;
+  --sidebar-width: 56px;
+  --channelpanel-width: 200px;
+  --memberlist-width: 220px;
+
+  /* Transitions */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 120ms var(--ease-in-out);
+  --transition-normal: 200ms var(--ease-in-out);
+  --transition-slow: 350ms var(--ease-out-expo);
+  --transition-panel: 300ms var(--ease-out-expo);
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.05em;
+  --tracking-wider: 0.1em;
+  --tracking-widest: 0.2em;
+
+  /* Z-index scale */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-titlebar: 600;
+}

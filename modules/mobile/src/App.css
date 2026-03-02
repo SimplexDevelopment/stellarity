@@ -1,0 +1,134 @@
+/* =======================================================
+   STELLARITY MOBILE — App Layout
+   ======================================================= */
+
+.mobile-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  background: var(--panel-bg-deep);
+  padding-top: var(--safe-area-top);
+  padding-bottom: var(--safe-area-bottom);
+  padding-left: var(--safe-area-left);
+  padding-right: var(--safe-area-right);
+}
+
+.mobile-app--loading {
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-app--auth {
+  background: var(--panel-bg-deep);
+}
+
+/* Main content area */
+.mobile-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Loading screen */
+.mobile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  height: 100%;
+}
+
+.mobile-loading__icon {
+  color: var(--accent-primary);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.mobile-loading__text {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+}
+
+/* Placeholder */
+.mobile-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-4);
+}
+
+.mobile-placeholder__icon {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.mobile-placeholder p {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Mobile header bar (shared across views) ─────────── */
+.mobile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  min-height: var(--mobile-header-height);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+}
+
+.mobile-header__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: none;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+.mobile-header__back:active {
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.mobile-header__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* Pulse glow animation */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}

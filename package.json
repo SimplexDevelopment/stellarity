@@ -1,0 +1,31 @@
+{
+  "name": "stellarity",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Stellarity - Decentralized FTL VoIP Platform",
+  "workspaces": [
+    "modules/shared",
+    "modules/central",
+    "modules/instance",
+    "modules/instance/panel",
+    "modules/client",
+    "modules/admin",
+    "modules/mobile"
+  ],
+  "scripts": {
+    "dev:central": "bun run --cwd modules/central dev",
+    "dev:instance": "bun run --cwd modules/instance dev",
+    "dev:client": "bun run --cwd modules/client dev",
+    "dev:admin": "bun run --cwd modules/admin dev",
+    "dev:mobile": "bun run --cwd modules/mobile dev",
+    "build:shared": "bun run --cwd modules/shared build",
+    "build:central": "bun run --cwd modules/central build",
+    "build:instance": "bun run --cwd modules/instance build",
+    "build:client": "bun run --cwd modules/client build",
+    "build:admin": "bun run --cwd modules/admin build",
+    "build:mobile": "bun run --cwd modules/mobile build",
+    "build:all": "bun run build:shared && bun run build:central && bun run build:instance && bun run build:client && bun run build:admin && bun run build:mobile",
+    "typecheck": "bun run --cwd modules/shared typecheck && bun run --cwd modules/central typecheck && bun run --cwd modules/instance typecheck",
+    "clean": "bun run --cwd modules/shared clean && bun run --cwd modules/central clean && bun run --cwd modules/instance clean"
+  }
+}

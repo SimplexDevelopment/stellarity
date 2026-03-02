@@ -1,0 +1,185 @@
+/* ── Server Settings Modal ────────────────────────────── */
+.server-settings {
+  min-width: 400px;
+}
+
+.server-settings__tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--panel-border);
+  margin-bottom: var(--spacing-md);
+}
+
+.server-settings__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  font-family: var(--font-mono);
+}
+
+.server-settings__tab:hover {
+  color: var(--text-primary);
+}
+
+.server-settings__tab--active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.server-settings__content {
+  padding: var(--spacing-xs) 0;
+}
+
+/* ── Settings Section ──────────────────────────────────── */
+.settings-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.settings-section__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-xs);
+  font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+
+.settings-section__desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0 0 var(--spacing-md);
+  line-height: 1.4;
+}
+
+/* ── Category List ──────────────────────────────────────── */
+.category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.category-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--panel-border);
+  transition: background var(--transition-fast);
+}
+
+.category-list__item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.category-list__icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.category-list__name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.category-list__actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.category-list__item:hover .category-list__actions {
+  opacity: 1;
+}
+
+.category-list__edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+/* ── Category Create ──────────────────────────────────── */
+.category-create {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.category-create .form-input {
+  flex: 1;
+}
+
+/* ── Settings Toggle ──────────────────────────────────── */
+.settings-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+  margin-bottom: var(--spacing-xs);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.settings-toggle:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--accent-primary);
+}
+
+.settings-toggle input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: var(--accent-primary);
+}
+
+.settings-toggle__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.settings-toggle__desc {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* ── Small form elements ──────────────────────────────── */
+.form-input--sm {
+  padding: 4px 8px;
+  font-size: 12px;
+  height: 28px;
+}
+
+.btn--sm {
+  padding: 4px 8px;
+  font-size: 11px;
+  height: 28px;
+}
+
+.btn--danger {
+  color: var(--status-danger);
+}
+
+.btn--danger:hover {
+  background: rgba(255, 68, 68, 0.1);
+}

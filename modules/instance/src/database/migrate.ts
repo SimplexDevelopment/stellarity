@@ -1,0 +1,273 @@
+/**
+ * Instance Database Schema Migration — SQLite
+ *
+ * The instance server stores community data (servers, channels, messages, voice)
+ * and instance-local moderation actions. User accounts are managed by the central
+ * server — the instance only tracks membership via user IDs from centrally-signed JWTs.
+ *
+ * All UUIDs are generated in application code (uuid v4) and stored as TEXT.
+ * Timestamps are stored as TEXT (ISO-8601) with defaults via strftime().
+ */
+import { getDb } from './database.js';
+import { logger } from '../utils/logger.js';
+
+export function migrate(): void {
+  logger.info('Running instance database migrations...');
+
+  const db = getDb();
+
+  // ── Instance Members ─────────────────────────────────────────────
+  // Users who have connected to this instance (from central JWT claims)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS instance_members (
+      user_id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      display_name TEXT,
+      avatar_url TEXT,
+      joined_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      last_seen_at TEXT,
+      is_banned INTEGER DEFAULT 0,
+      ban_reason TEXT,
+      notes TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_instance_members_username ON instance_members(username);
+  `);
+
+  // ── Servers (guilds/communities) within this instance ────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS servers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      icon_url TEXT,
+      owner_id TEXT NOT NULL,
+      invite_code TEXT UNIQUE,
+      max_members INTEGER DEFAULT 500,
+      is_public INTEGER DEFAULT 1,
+      password_hash TEXT,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_servers_owner ON servers(owner_id);
+    CREATE INDEX IF NOT EXISTS idx_servers_invite ON servers(invite_code);
+  `);
+
+  // ── Server Members ───────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS server_members (
+      id TEXT PRIMARY KEY,
+      server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      nickname TEXT,
+      joined_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      UNIQUE(server_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_server_members_server ON server_members(server_id);
+    CREATE INDEX IF NOT EXISTS idx_server_members_user ON server_members(user_id);
+  `);
+
+  // ── Roles ────────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS roles (
+      id TEXT PRIMARY KEY,
+      server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      color TEXT,
+      position INTEGER DEFAULT 0,
+      permissions TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_roles_server ON roles(server_id);
+  `);
+
+  // ── Member Roles (many-to-many) ──────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS member_roles (
+      member_id TEXT NOT NULL REFERENCES server_members(id) ON DELETE CASCADE,
+      role_id TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+      PRIMARY KEY (member_id, role_id)
+    );
+  `);
+
+  // ── Categories (channel groups within a server) ──────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id TEXT PRIMARY KEY,
+      server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      position INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_categories_server ON categories(server_id);
+  `);
+
+  // ── Channels ─────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS channels (
+      id TEXT PRIMARY KEY,
+      server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+      category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'text',
+      description TEXT,
+      position INTEGER DEFAULT 0,
+      bitrate INTEGER DEFAULT 64000,
+      user_limit INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_channels_server ON channels(server_id);
+  `);
+
+  // ── Messages ─────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      encrypted INTEGER DEFAULT 0,
+      attachments TEXT DEFAULT '[]',
+      embeds TEXT DEFAULT '[]',
+      reply_to_id TEXT REFERENCES messages(id) ON DELETE SET NULL,
+      pinned INTEGER DEFAULT 0,
+      edited_at TEXT,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel_id);
+    CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id);
+    CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(channel_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_messages_pinned ON messages(channel_id, pinned);
+  `);
+
+  // ── Voice States ─────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS voice_states (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      channel_id TEXT REFERENCES channels(id) ON DELETE SET NULL,
+      server_id TEXT REFERENCES servers(id) ON DELETE CASCADE,
+      self_mute INTEGER DEFAULT 0,
+      self_deaf INTEGER DEFAULT 0,
+      joined_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_voice_states_channel ON voice_states(channel_id);
+    CREATE INDEX IF NOT EXISTS idx_voice_states_user ON voice_states(user_id);
+  `);
+
+  // ── Moderation Actions ───────────────────────────────────────────
+  // Instance-local moderation: bans, kicks, mutes, warnings, timeouts.
+  // This data lives ONLY on the instance — NOT on the user's central account.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS moderation_actions (
+      id TEXT PRIMARY KEY,
+      server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      moderator_id TEXT NOT NULL,
+      action TEXT NOT NULL,
+      reason TEXT,
+      duration INTEGER,
+      expires_at TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_mod_actions_server ON moderation_actions(server_id);
+    CREATE INDEX IF NOT EXISTS idx_mod_actions_user ON moderation_actions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_mod_actions_active ON moderation_actions(server_id, user_id, action, is_active);
+  `);
+
+  // ── Audit Logs ───────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT,
+      action TEXT NOT NULL,
+      target_type TEXT,
+      target_id TEXT,
+      details TEXT,
+      ip_address TEXT,
+      created_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
+  `);
+
+  // ── Instance Settings (key-value store for runtime configuration) ─
+  // Allows instance owner to change settings via the management panel
+  // without restarting. Settings here override env vars/defaults.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS instance_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+  `);
+
+  // ── Server Creators (instance members who are allowed to create servers) ─
+  // Only used when the server_creation_policy setting is 'selected'
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS server_creators (
+      user_id TEXT PRIMARY KEY,
+      added_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+  `);
+
+  // ── Triggers ─────────────────────────────────────────────────────
+  // SQLite triggers for updated_at columns
+  const tablesWithUpdatedAt = ['servers', 'channels'];
+  for (const table of tablesWithUpdatedAt) {
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS update_${table}_updated_at
+        AFTER UPDATE ON ${table}
+        FOR EACH ROW
+        BEGIN
+          UPDATE ${table} SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+          WHERE rowid = NEW.rowid;
+        END;
+    `);
+  }
+
+  // ── Schema migrations for existing databases ─────────────────────
+  // Add new columns to existing tables (safe to run multiple times)
+  const migrations = [
+    { table: 'servers', column: 'is_public', sql: `ALTER TABLE servers ADD COLUMN is_public INTEGER DEFAULT 1` },
+    { table: 'servers', column: 'password_hash', sql: `ALTER TABLE servers ADD COLUMN password_hash TEXT` },
+    { table: 'channels', column: 'category_id', sql: `ALTER TABLE channels ADD COLUMN category_id TEXT REFERENCES categories(id) ON DELETE SET NULL` },
+    { table: 'channels', column: 'is_temporary', sql: `ALTER TABLE channels ADD COLUMN is_temporary INTEGER DEFAULT 0` },
+    { table: 'channels', column: 'created_by', sql: `ALTER TABLE channels ADD COLUMN created_by TEXT` },
+    { table: 'channels', column: 'password_hash', sql: `ALTER TABLE channels ADD COLUMN password_hash TEXT` },
+    { table: 'channels', column: 'expires_when_empty', sql: `ALTER TABLE channels ADD COLUMN expires_when_empty INTEGER DEFAULT 0` },
+  ];
+
+  for (const m of migrations) {
+    try {
+      // Check if column exists by querying table_info
+      const cols = db.prepare(`PRAGMA table_info(${m.table})`).all() as any[];
+      if (!cols.some((c: any) => c.name === m.column)) {
+        db.exec(m.sql);
+        logger.info(`Migration: added ${m.column} to ${m.table}`);
+      }
+    } catch {
+      // Column may already exist — ignore
+    }
+  }
+
+  // Create indexes on columns that may have been added by migrations above
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_servers_public ON servers(is_public)`); } catch { /* column may not exist */ }
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_channels_category ON channels(category_id)`); } catch { /* column may not exist */ }
+  try { db.exec(`CREATE INDEX IF NOT EXISTS idx_channels_temporary ON channels(is_temporary)`); } catch { /* column may not exist */ }
+
+  // ── Server Features (per-server feature toggles) ─────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS server_features (
+      server_id TEXT PRIMARY KEY REFERENCES servers(id) ON DELETE CASCADE,
+      build_a_lobby_enabled INTEGER DEFAULT 1,
+      build_a_lobby_position INTEGER DEFAULT 0,
+      auto_overflow_enabled INTEGER DEFAULT 0,
+      updated_at TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+  `);
+
+  logger.info('Instance database migrations completed successfully');
+}

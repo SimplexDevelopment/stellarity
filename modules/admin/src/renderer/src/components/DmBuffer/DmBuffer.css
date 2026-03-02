@@ -1,0 +1,25 @@
+.dm-buffer__stats {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.dm-buffer__stats .stat-card {
+  min-width: 140px;
+}
+
+.dm-buffer .mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-8) !important;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}

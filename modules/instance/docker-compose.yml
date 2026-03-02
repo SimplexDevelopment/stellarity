@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: stellarity_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Uncomment to expose the management panel port in Docker
+  # instance:
+  #   ports:
+  #     - "3003:3003"  # Panel management port (localhost-only recommended)
+  #   environment:
+  #     - PANEL_PORT=3003
+  #     - PANEL_BIND_ADDRESS=0.0.0.0  # Set to 127.0.0.1 for production
+
+volumes:
+  redis_data:
+    driver: local

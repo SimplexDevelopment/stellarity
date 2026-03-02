@@ -1,0 +1,84 @@
+.voice-overlay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  background: rgba(46, 204, 113, 0.12);
+  border-bottom: 1px solid rgba(46, 204, 113, 0.25);
+}
+
+.voice-overlay__info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.voice-overlay__wave {
+  color: #2ecc71;
+  flex-shrink: 0;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.voice-overlay__details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.voice-overlay__channel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2ecc71;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-overlay__users {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-overlay__controls {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.voice-overlay__btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.voice-overlay__btn:active {
+  transform: scale(0.92);
+}
+
+.voice-overlay__btn--active {
+  background: var(--error);
+  color: #fff;
+}
+
+.voice-overlay__btn--disconnect {
+  background: var(--error);
+  color: #fff;
+}
+
+.voice-overlay__btn--disconnect:active {
+  background: #c0392b;
+}

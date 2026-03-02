@@ -1,0 +1,41 @@
+.members-view {
+  animation: fadeIn 300ms ease;
+}
+
+.members-view__toolbar {
+  margin-bottom: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.members-view__toolbar .search-bar {
+  flex: 1;
+  max-width: 400px;
+}
+
+.members-view__filters {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.members-view__name-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition-fast);
+}
+
+.members-view__name-link:hover {
+  color: var(--color-accent-bright);
+  text-decoration: underline;
+}
+
+.members-view__actions {
+  display: flex;
+  gap: var(--space-2);
+}
