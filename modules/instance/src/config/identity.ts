@@ -36,7 +36,7 @@ export async function getInstanceIdentity(): Promise<InstanceIdentity> {
     // Generate new identity
     logger.info('No instance identity found, generating new keypair...');
     
-    const { publicKey, privateKey } = await generateKeyPair('EdDSA', { crv: 'Ed25519' });
+    const { publicKey, privateKey } = await generateKeyPair('EdDSA', { crv: 'Ed25519', extractable: true });
     
     const publicKeySpki = await exportSPKI(publicKey);
     const privateKeyPkcs8 = await exportPKCS8(privateKey);
