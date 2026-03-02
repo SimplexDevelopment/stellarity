@@ -3,7 +3,6 @@ import { useVoiceStore } from '../../stores/voiceStore'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useServerStore } from '../../stores/serverStore'
-import { instanceManager } from '../../utils/instanceManager'
 import { voiceManager } from '../../utils/voiceManager'
 import {
   WaveformIcon,
@@ -31,8 +30,6 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
     channelUsers,
     selfMute,
     selfDeaf,
-    setSelfMute,
-    setSelfDeaf,
   } = useVoiceStore()
   const bitrate = useSettingsStore((s) => s.bitrate)
   const setVoiceSettings = useSettingsStore((s) => s.setVoiceSettings)
@@ -49,41 +46,28 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
     voiceManager.setBitrate(bitrate)
   }, [bitrate])
 
-  const getInstanceSocket = () => {
-    const instanceId = useServerStore.getState().currentInstanceId
-    return instanceId ? instanceManager.getSocket(instanceId) : undefined
-  }
-
   const handleJoin = async () => {
     if (!currentServerId) return
     setConnectionState('connecting')
     try {
-      await voiceManager.initializeAudio()
-      getInstanceSocket()?.joinVoiceChannel(channelId, currentServerId)
+      await voiceManager.joinChannel(channelId, currentServerId)
     } catch (err) {
       console.error('Failed to join voice:', err)
       setConnectionState('disconnected')
     }
   }
 
-  const handleLeave = () => {
-    voiceManager.cleanup()
-    getInstanceSocket()?.leaveVoiceChannel()
+  const handleLeave = async () => {
     setConnectionState('disconnected')
+    await voiceManager.leaveChannel()
   }
 
   const toggleMute = () => {
-    const next = !selfMute
-    setSelfMute(next)
-    voiceManager.setMuted(next)
-    getInstanceSocket()?.updateVoiceState(next, selfDeaf)
+    voiceManager.setMuted(!selfMute)
   }
 
   const toggleDeaf = () => {
-    const next = !selfDeaf
-    setSelfDeaf(next)
-    voiceManager.setDeafened(next)
-    getInstanceSocket()?.updateVoiceState(next ? true : selfMute, next)
+    voiceManager.setDeafened(!selfDeaf)
   }
 
   return (
@@ -122,8 +106,8 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
             <div className="voice__grid">
               {channelUsers.map((u) => (
                 <div
-                  key={u.oderId}
-                  className={`voice-card ${u.speaking ? 'voice-card--speaking' : ''} ${u.oderId === user?.id ? 'voice-card--self' : ''}`}
+                  key={u.userId}
+                  className={`voice-card ${u.speaking ? 'voice-card--speaking' : ''} ${u.userId === user?.id ? 'voice-card--self' : ''}`}
                 >
                   <div className="voice-card__avatar avatar">
                     <span>{(u.displayName || u.username)[0].toUpperCase()}</span>
@@ -132,7 +116,7 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
                   <div className="voice-card__info">
                     <span className="voice-card__name">
                       {u.displayName || u.username}
-                      {u.oderId === user?.id && ' (You)'}
+                      {u.userId === user?.id && ' (You)'}
                     </span>
                     <div className="voice-card__icons">
                       {u.selfMute && <MicOffIcon size={14} className="voice-card__icon--mute" />}

@@ -26,7 +26,7 @@ export interface InstanceServerToClientEvents {
   'voice:state-update': (data: { userId: string; selfMute?: boolean; selfDeaf?: boolean; channelId?: string | null }) => void;
   'voice:speaking': (data: { userId: string; speaking: boolean }) => void;
   'voice:signal': (data: { fromUserId: string; signal: VoiceSignal['signal'] }) => void;
-  'voice:data': (data: { fromUserId: string; data: Buffer }) => void;
+  'voice:data': (data: { fromUserId: string; data: ArrayBuffer }) => void;
   'voice:left': () => void;
 
   // Messages
@@ -109,7 +109,7 @@ export interface InstanceClientToServerEvents {
   'voice:leave': () => void;
   'voice:state': (data: { selfMute: boolean; selfDeaf: boolean }) => void;
   'voice:signal': (data: { targetUserId: string; signal: VoiceSignal['signal'] }) => void;
-  'voice:data': (encryptedData: Buffer) => void;
+  'voice:data': (data: ArrayBuffer) => void;
   'voice:speaking': (speaking: boolean) => void;
   'voice:quality': (data: { quality: number }) => void;
   'voice:request-host-migration': () => void;

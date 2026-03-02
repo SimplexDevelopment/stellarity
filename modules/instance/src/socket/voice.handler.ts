@@ -40,6 +40,7 @@ export async function handleVoiceLeave(io: SocketServer, socket: AuthenticatedSo
     const remainingUsers = await voiceService.getChannelUsers(channelId);
     io.to(`server:${serverId}`).emit('voice:user-left-channel', {
       channelId,
+      serverId,
       userId: socket.userId,
       userCount: remainingUsers.length,
     });
@@ -90,10 +91,12 @@ export function registerVoiceHandlers(io: SocketServer, socket: AuthenticatedSoc
         socket.to(`voice:${actualChannelId}`).emit('voice:user-joined', {
           userId: socket.userId,
           username: socket.username,
+          displayName: socket.displayName || null,
         });
 
         socket.emit('voice:joined', {
           channelId: actualChannelId,
+          serverId,
           users,
           channelKey,
           hostUserId,
@@ -111,7 +114,7 @@ export function registerVoiceHandlers(io: SocketServer, socket: AuthenticatedSoc
           user: {
             userId: socket.userId,
             username: socket.username,
-            displayName: null,
+            displayName: socket.displayName || null,
             avatarUrl: null,
             selfMute: false,
             selfDeaf: false,
@@ -139,6 +142,7 @@ export function registerVoiceHandlers(io: SocketServer, socket: AuthenticatedSoc
 
               socket.emit('voice:joined', {
                 channelId: overflowChannel.id,
+                serverId,
                 users: overflowResult.users,
                 channelKey: overflowResult.channelKey,
                 hostUserId: overflowResult.hostUserId,
@@ -155,7 +159,7 @@ export function registerVoiceHandlers(io: SocketServer, socket: AuthenticatedSoc
                 user: {
                   userId: socket.userId,
                   username: socket.username,
-                  displayName: null,
+                  displayName: socket.displayName || null,
                   avatarUrl: null,
                   selfMute: false,
                   selfDeaf: false,
@@ -203,15 +207,7 @@ export function registerVoiceHandlers(io: SocketServer, socket: AuthenticatedSoc
     }
   });
 
-  // Handle voice data (WebRTC signaling)
-  socket.on('voice:signal', ({ targetUserId, signal }: { targetUserId: string; signal: unknown }) => {
-    io.to(`user:${targetUserId}`).emit('voice:signal', {
-      fromUserId: socket.userId,
-      signal,
-    });
-  });
-
-  // Handle encrypted voice data relay
+  // Handle voice data relay (SFU architecture — server receives and fans out)
   socket.on('voice:data', (encryptedData: Buffer) => {
     if (socket.currentChannel) {
       socket.to(`voice:${socket.currentChannel}`).emit('voice:data', {

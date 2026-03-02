@@ -1,5 +1,5 @@
 // ============================================================
-// Voice Types — WebRTC voice communication
+// Voice Types — SFU relay voice communication
 // ============================================================
 
 export interface VoiceState {
@@ -37,13 +37,14 @@ export interface VoiceJoinedPayload {
   isHost: boolean;
 }
 
+/** @deprecated P2P signaling — kept for mobile module compatibility */
 export interface VoiceSignal {
   targetUserId?: string;
   fromUserId?: string;
   signal: RTCSignalData;
 }
 
-/** Simplified RTC signal for serialization */
+/** @deprecated P2P signaling — kept for mobile module compatibility */
 export type RTCSignalData = {
   type: 'offer' | 'answer' | 'candidate';
   sdp?: string;

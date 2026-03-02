@@ -29,7 +29,7 @@ class VoiceService {
     userId: string,
     channelId: string,
     serverId: string
-  ): Promise<{ users: string[]; channelKey: string; hostUserId: string; isHost: boolean }> {
+  ): Promise<{ users: VoiceUser[]; channelKey: string; hostUserId: string; isHost: boolean }> {
     // Check channel user limit
     const channelResult = query(
       `SELECT user_limit FROM channels WHERE id = $1 AND type = 'voice'`,
@@ -86,8 +86,8 @@ class VoiceService {
     // Set initial connection quality
     await voiceChannels.updateConnectionQuality(channelId, userId, 100);
     
-    // Get all users in channel
-    const users = await voiceChannels.getUsers(channelId);
+    // Get all users in channel (enriched with display info from DB)
+    const users = await this.getChannelUsers(channelId);
     
     // Generate channel encryption key (in production, use per-channel keys)
     const channelKey = `${serverId}:${channelId}:key`;

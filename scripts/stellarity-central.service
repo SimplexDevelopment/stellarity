@@ -1,0 +1,16 @@
+[Unit]
+Description=Stellarity Central Server
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/stellarity/modules/central
+ExecStart=/root/.bun/bin/bun run src/index.ts
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

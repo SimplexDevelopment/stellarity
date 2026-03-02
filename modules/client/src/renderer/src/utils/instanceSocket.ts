@@ -14,15 +14,15 @@ import { io, Socket } from 'socket.io-client';
 
 export interface InstanceSocketCallbacks {
   onPresenceUpdate?: (data: { userId: string; status: string }) => void;
-  onVoiceJoined?: (data: { channelId: string; users: any[]; hostUserId: string; isHost: boolean }) => void;
-  onVoiceUserJoined?: (data: { userId: string; username: string }) => void;
+  onVoiceJoined?: (data: { channelId: string; serverId: string; users: any[]; channelKey: string; hostUserId: string; isHost: boolean }) => void;
+  onVoiceUserJoined?: (data: { userId: string; username: string; displayName: string | null }) => void;
   onVoiceUserLeft?: (data: { userId: string }) => void;
   onVoiceHostChanged?: (data: { hostUserId: string }) => void;
   onVoiceQualityUpdate?: (data: { userId: string; quality: number }) => void;
-  onVoiceStateUpdate?: (data: { userId: string; selfMute: boolean; selfDeaf: boolean }) => void;
+  onVoiceStateUpdate?: (data: { userId: string; selfMute?: boolean; selfDeaf?: boolean; channelId?: string | null }) => void;
   onVoiceSpeaking?: (data: { userId: string; speaking: boolean }) => void;
   onVoiceLeft?: () => void;
-  onVoiceSignal?: (data: { userId: string; signal: any }) => void;
+  onVoiceData?: (data: { fromUserId: string; data: ArrayBuffer }) => void;
   onMessageNew?: (message: any) => void;
   onMessageUpdated?: (message: any) => void;
   onMessageDeleted?: (data: { messageId: string; channelId: string }) => void;
@@ -122,7 +122,7 @@ export class InstanceSocketManager {
     this.socket.on('voice:state-update', (data) => this.callbacks.onVoiceStateUpdate?.(data));
     this.socket.on('voice:speaking', (data) => this.callbacks.onVoiceSpeaking?.(data));
     this.socket.on('voice:left', () => this.callbacks.onVoiceLeft?.());
-    this.socket.on('voice:signal', (data) => this.callbacks.onVoiceSignal?.(data));
+    this.socket.on('voice:data', (data) => this.callbacks.onVoiceData?.(data));
 
     // Message events
     this.socket.on('message:new', (msg) => this.callbacks.onMessageNew?.(msg));
@@ -189,8 +189,8 @@ export class InstanceSocketManager {
     this.socket?.emit('voice:state', { selfMute, selfDeaf });
   }
 
-  sendVoiceSignal(targetUserId: string, signal: any): void {
-    this.socket?.emit('voice:signal', { targetUserId, signal });
+  sendVoiceData(data: ArrayBuffer): void {
+    this.socket?.emit('voice:data', data);
   }
 
   sendSpeakingState(speaking: boolean): void {

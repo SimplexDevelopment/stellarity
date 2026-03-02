@@ -3,6 +3,7 @@ import { useServerStore, VoiceOccupantUser } from '../../stores/serverStore'
 import { useVoiceStore } from '../../stores/voiceStore'
 import { useAuthStore } from '../../stores/authStore'
 import { instanceManager } from '../../utils/instanceManager'
+import { voiceManager } from '../../utils/voiceManager'
 import {
   HashIcon,
   WaveformIcon,
@@ -237,15 +238,17 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
   const currentServer = servers.find((s) => s.id === currentServerId)
 
-  const handleChannelClick = (ch: typeof channels[0]) => {
+  const handleChannelClick = async (ch: typeof channels[0]) => {
     if (ch.type === 'text') {
       setCurrentChannel(ch.id)
     } else {
-      const conn = currentServer ? instanceManager.getInstance((currentServer as any).instanceId) : undefined
       if (voiceChannelId === ch.id) {
-        conn?.socket.leaveVoiceChannel()
+        await voiceManager.leaveChannel()
       } else {
-        conn?.socket.joinVoiceChannel(ch.id, currentServerId!)
+        if (voiceChannelId) {
+          await voiceManager.leaveChannel()
+        }
+        await voiceManager.joinChannel(ch.id, currentServerId!)
       }
     }
   }
@@ -271,7 +274,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     // If it's the channel we're connected to, prefer the live voiceStore data
     if (voiceChannelId === channelId && channelUsers.length > 0) {
       return channelUsers.map(u => ({
-        userId: u.oderId,
+        userId: u.userId,
         username: u.username,
         displayName: u.displayName,
         avatarUrl: null,
@@ -290,7 +293,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       <div className="voice-users">
         {occupants.map((u) => {
           const isSpeaking = voiceChannelId === channelId
-            ? channelUsers.find(cu => cu.oderId === u.userId)?.speaking
+            ? channelUsers.find(cu => cu.userId === u.userId)?.speaking
             : false
           return (
             <div key={u.userId} className={`voice-user ${isSpeaking ? 'voice-user--speaking' : ''}`}>

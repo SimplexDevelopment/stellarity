@@ -1,0 +1,15 @@
+[Unit]
+Description=Stellarity Instance Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/stellarity/modules/instance
+ExecStart=/root/.bun/bin/bun run src/index.ts
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

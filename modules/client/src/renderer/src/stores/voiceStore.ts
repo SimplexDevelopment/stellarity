@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 interface VoiceUser {
-  oderId: string; // Keep as oderId for backward compat
+  userId: string;
   username: string;
   displayName: string | null;
   selfMute: boolean;
@@ -33,8 +33,8 @@ interface VoiceState {
   setConnected: (connected: boolean, channelId?: string | null) => void;
   setChannelUsers: (users: VoiceUser[]) => void;
   addChannelUser: (user: VoiceUser) => void;
-  removeChannelUser: (oderId: string) => void;
-  updateUserVoiceState: (oderId: string, updates: Partial<VoiceUser>) => void;
+  removeChannelUser: (userId: string) => void;
+  updateUserVoiceState: (userId: string, updates: Partial<VoiceUser>) => void;
   setSelfMute: (muted: boolean) => void;
   setSelfDeaf: (deaf: boolean) => void;
   setIsSpeaking: (speaking: boolean) => void;
@@ -79,21 +79,21 @@ export const useVoiceStore = create<VoiceState>((set) => ({
   setChannelUsers: (users) => set({ channelUsers: users }),
   
   addChannelUser: (user) => set((state) => ({
-    channelUsers: [...state.channelUsers.filter((u) => u.oderId !== user.oderId), user],
+    channelUsers: [...state.channelUsers.filter((u) => u.userId !== user.userId), user],
   })),
   
-  removeChannelUser: (oderId) => set((state) => ({
-    channelUsers: state.channelUsers.filter((u) => u.oderId !== oderId),
+  removeChannelUser: (userId) => set((state) => ({
+    channelUsers: state.channelUsers.filter((u) => u.userId !== userId),
   })),
   
-  updateUserVoiceState: (oderId, updates) => set((state) => ({
+  updateUserVoiceState: (userId, updates) => set((state) => ({
     channelUsers: state.channelUsers.map((u) =>
-      u.oderId === oderId ? { ...u, ...updates } : u
+      u.userId === userId ? { ...u, ...updates } : u
     ),
   })),
   
   setSelfMute: (muted) => set({ selfMute: muted }),
-  setSelfDeaf: (deaf) => set({ selfDeaf: deaf, selfMute: deaf ? true : undefined }),
+  setSelfDeaf: (deaf) => set((state) => ({ selfDeaf: deaf, selfMute: deaf ? true : state.selfMute })),
   setIsSpeaking: (speaking) => set({ isSpeaking: speaking }),
   setInputDevice: (deviceId) => set({ inputDevice: deviceId }),
   setOutputDevice: (deviceId) => set({ outputDevice: deviceId }),

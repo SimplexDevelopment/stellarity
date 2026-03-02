@@ -48,6 +48,7 @@ export function initializeSocket(httpServer: HttpServer): SocketServer {
       
       socket.userId = decoded.sub;
       socket.username = decoded.username;
+      socket.displayName = decoded.displayName || null;
       
       next();
     } catch (error) {

@@ -15,6 +15,7 @@
  */
 import { InstanceApiClient } from './instanceApi';
 import { InstanceSocketManager, InstanceSocketCallbacks } from './instanceSocket';
+import { voiceManager } from './voiceManager';
 import { useAuthStore } from '../stores/authStore';
 import { useServerStore } from '../stores/serverStore';
 import { useVoiceStore } from '../stores/voiceStore';
@@ -287,9 +288,9 @@ class InstanceManager {
         voiceStore.setIsHost(isHost);
         voiceStore.setChannelUsers(
           users.map((u: any) => ({
-            oderId: u.userId || u.oderId,
+            userId: u.userId,
             username: u.username,
-            displayName: u.displayName,
+            displayName: u.displayName || null,
             selfMute: u.selfMute || false,
             selfDeaf: u.selfDeaf || false,
             speaking: false,
@@ -297,11 +298,11 @@ class InstanceManager {
         );
       },
 
-      onVoiceUserJoined: ({ userId, username }) => {
+      onVoiceUserJoined: ({ userId, username, displayName }) => {
         useVoiceStore.getState().addChannelUser({
-          oderId: userId,
+          userId,
           username,
-          displayName: null,
+          displayName: displayName || null,
           selfMute: false,
           selfDeaf: false,
           speaking: false,
@@ -310,6 +311,7 @@ class InstanceManager {
 
       onVoiceUserLeft: ({ userId }) => {
         useVoiceStore.getState().removeChannelUser(userId);
+        voiceManager.handleUserLeft(userId);
       },
 
       onVoiceHostChanged: ({ hostUserId }) => {
@@ -324,7 +326,12 @@ class InstanceManager {
       },
 
       onVoiceStateUpdate: ({ userId, selfMute, selfDeaf }) => {
-        useVoiceStore.getState().updateUserVoiceState(userId, { selfMute, selfDeaf });
+        const updates: Record<string, boolean> = {};
+        if (selfMute !== undefined) updates.selfMute = selfMute;
+        if (selfDeaf !== undefined) updates.selfDeaf = selfDeaf;
+        if (Object.keys(updates).length > 0) {
+          useVoiceStore.getState().updateUserVoiceState(userId, updates);
+        }
       },
 
       onVoiceSpeaking: ({ userId, speaking }) => {
@@ -333,6 +340,11 @@ class InstanceManager {
 
       onVoiceLeft: () => {
         useVoiceStore.getState().setConnected(false);
+        voiceManager.cleanup();
+      },
+
+      onVoiceData: ({ fromUserId, data }) => {
+        voiceManager.handleVoiceData(fromUserId, data);
       },
 
       onMessageNew: (message: Message) => {

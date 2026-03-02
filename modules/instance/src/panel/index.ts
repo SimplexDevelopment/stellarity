@@ -53,17 +53,24 @@ export async function startPanelServer(): Promise<http.Server | null> {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", ...(panelOrigins.length > 0 ? panelOrigins : [])],
         imgSrc: ["'self'", "data:", "https:"],
       },
     },
   }));
 
-  // CORS — same-origin only (panel UI is served from the same server)
+  // CORS — allow same-origin, localhost, and configured panel origins
+  const panelOrigins = (process.env.PANEL_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
   app.use(cors({
     origin: (origin, callback) => {
       // Allow same-origin requests (no origin header) and localhost
       if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        callback(null, true);
+      } else if (panelOrigins.length > 0 && panelOrigins.includes(origin)) {
+        callback(null, true);
+      } else if (config.panel.bindAddress === '0.0.0.0') {
+        // When binding to all interfaces, allow same-origin requests from any host
+        // since the panel UI is served from the same server
         callback(null, true);
       } else {
         callback(new Error('CORS not allowed'));

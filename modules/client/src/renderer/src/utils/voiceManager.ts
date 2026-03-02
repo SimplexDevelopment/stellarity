@@ -1,45 +1,200 @@
+/**
+ * Voice Manager — SFU Relay Architecture
+ *
+ * Captures local microphone audio, encodes it to Opus using WebCodecs AudioEncoder,
+ * and sends encoded frames to the instance server via Socket.IO for relay to all
+ * other voice channel members. Received Opus frames are decoded per-user via
+ * AudioDecoder and played through per-user AudioWorklet playback nodes.
+ *
+ * Audio Pipeline:
+ *
+ * CAPTURE: Mic → MediaStreamSource → GainNode → AnalyserNode → CaptureWorkletNode
+ *                                                                  ↓ (postMessage)
+ *                                                              AudioEncoder (Opus)
+ *                                                                  ↓ (output)
+ *                                                              socket.emit('voice:data')
+ *
+ * PLAYBACK: socket.on('voice:data') → AudioDecoder[userId] (Opus → PCM)
+ *                                         ↓ (output)
+ *                                     PlaybackWorkletNode[userId] → GainNode[userId]
+ *                                                                     ↓
+ *                                                              MasterOutputGain → destination
+ */
 import { useVoiceStore } from '../stores/voiceStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useServerStore } from '../stores/serverStore';
 import { instanceManager } from './instanceManager';
 import type { InstanceSocketManager } from './instanceSocket';
 
-/** Get the socket for the currently active instance */
+// ── AudioWorklet Processor Code (inline for build compatibility) ──────────
+
+/**
+ * CaptureProcessor — runs in the AudioWorklet thread.
+ * Buffers incoming PCM samples into 20 ms Opus-aligned frames (960 samples at
+ * 48 kHz mono) and posts completed frames to the main thread via MessagePort.
+ */
+const CAPTURE_PROCESSOR_CODE = `
+class CaptureProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this._buffer = new Float32Array(960);
+    this._writeIndex = 0;
+    this._enabled = true;
+
+    this.port.onmessage = (event) => {
+      if (event.data.type === 'set-enabled') {
+        this._enabled = event.data.value;
+      }
+    };
+  }
+
+  process(inputs, outputs, parameters) {
+    const input = inputs[0];
+    if (!input || !input[0] || !this._enabled) return true;
+
+    const channelData = input[0];
+
+    for (let i = 0; i < channelData.length; i++) {
+      this._buffer[this._writeIndex++] = channelData[i];
+
+      if (this._writeIndex >= 960) {
+        this.port.postMessage(
+          { type: 'frame', samples: this._buffer },
+          [this._buffer.buffer]
+        );
+        this._buffer = new Float32Array(960);
+        this._writeIndex = 0;
+      }
+    }
+
+    return true;
+  }
+}
+registerProcessor('capture-processor', CaptureProcessor);
+`;
+
+/**
+ * PlaybackProcessor — runs in the AudioWorklet thread.
+ * Receives decoded PCM samples from the main thread and plays them from a ring
+ * buffer with a configurable jitter-smoothing start threshold.
+ */
+const PLAYBACK_PROCESSOR_CODE = `
+class PlaybackProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this._ringBuffer = new Float32Array(19200);
+    this._readIndex = 0;
+    this._writeIndex = 0;
+    this._buffered = 0;
+    this._startThreshold = 2880;
+    this._started = false;
+
+    this.port.onmessage = (event) => {
+      if (event.data.type === 'samples') {
+        const samples = event.data.samples;
+        const len = this._ringBuffer.length;
+
+        for (let i = 0; i < samples.length; i++) {
+          this._ringBuffer[this._writeIndex] = samples[i];
+          this._writeIndex = (this._writeIndex + 1) % len;
+
+          if (this._buffered < len) {
+            this._buffered++;
+          } else {
+            this._readIndex = (this._readIndex + 1) % len;
+          }
+        }
+
+        if (!this._started && this._buffered >= this._startThreshold) {
+          this._started = true;
+        }
+      } else if (event.data.type === 'clear') {
+        this._readIndex = 0;
+        this._writeIndex = 0;
+        this._buffered = 0;
+        this._started = false;
+      }
+    };
+  }
+
+  process(inputs, outputs, parameters) {
+    const output = outputs[0];
+    if (!output || !output[0]) return true;
+
+    const channel = output[0];
+    const len = this._ringBuffer.length;
+
+    if (!this._started) {
+      for (let i = 0; i < channel.length; i++) channel[i] = 0;
+      return true;
+    }
+
+    for (let i = 0; i < channel.length; i++) {
+      if (this._buffered > 0) {
+        channel[i] = this._ringBuffer[this._readIndex];
+        this._readIndex = (this._readIndex + 1) % len;
+        this._buffered--;
+      } else {
+        channel[i] = 0;
+        this._started = false;
+      }
+    }
+
+    return true;
+  }
+}
+registerProcessor('playback-processor', PlaybackProcessor);
+`;
+
+// ── Helper ────────────────────────────────────────────────────────────────
+
 function getInstanceSocket(): InstanceSocketManager | undefined {
   const { currentInstanceId } = useServerStore.getState();
   if (!currentInstanceId) return undefined;
   return instanceManager.getSocket(currentInstanceId);
 }
 
-interface PeerConnection {
-  pc: RTCPeerConnection;
+// ── Remote User Audio State ───────────────────────────────────────────────
+
+interface RemoteUserAudio {
   userId: string;
-  audioElement?: HTMLAudioElement;
-  latency: number;
-  packetsLost: number;
-  lastStatsTime: number;
+  decoder: AudioDecoder;
+  playbackNode: AudioWorkletNode;
+  gainNode: GainNode;
+  lastReceivedTime: number;
+  speakingTimeout: number | null;
 }
 
+// ── Voice Manager ─────────────────────────────────────────────────────────
+
 class VoiceManager {
+  // Capture pipeline
   private localStream: MediaStream | null = null;
-  private peers: Map<string, PeerConnection> = new Map();
   private audioContext: AudioContext | null = null;
-  private analyser: AnalyserNode | null = null;
+  private sourceNode: MediaStreamAudioSourceNode | null = null;
   private gainNode: GainNode | null = null;
+  private analyser: AnalyserNode | null = null;
+  private captureNode: AudioWorkletNode | null = null;
+  private encoder: AudioEncoder | null = null;
+
+  // Playback pipeline
+  private masterOutputGain: GainNode | null = null;
+  private remoteUsers: Map<string, RemoteUserAudio> = new Map();
+
+  // State
   private speakingCheckInterval: number | null = null;
-  private qualityCheckInterval: number | null = null;
-  private channelKey: string | null = null;
-  
-  private iceServers: RTCIceServer[] = [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-  ];
-  
+  private isActive: boolean = false;
+  private encoderTimestamp: number = 0;
+  private workletModulesLoaded: boolean = false;
+
+  // ── Audio Initialization ────────────────────────────────────────────
+
   async initializeAudio(): Promise<boolean> {
     try {
       const settings = useSettingsStore.getState();
-      
-      const constraints: MediaStreamConstraints = {
+
+      // Capture microphone
+      this.localStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           deviceId: settings.inputDevice ? { exact: settings.inputDevice } : undefined,
           echoCancellation: settings.echoCancellation,
@@ -49,124 +204,181 @@ class VoiceManager {
           channelCount: 1,
         },
         video: false,
-      };
-      
-      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      // Set up audio processing
-      this.audioContext = new AudioContext();
-      const source = this.audioContext.createMediaStreamSource(this.localStream);
-      
-      // Create gain node for volume control
+      });
+
+      // Create AudioContext at 48 kHz (Opus native rate)
+      this.audioContext = new AudioContext({ sampleRate: 48000 });
+
+      // Load AudioWorklet processors (once per AudioContext lifetime)
+      if (!this.workletModulesLoaded) {
+        const captureBlob = new Blob([CAPTURE_PROCESSOR_CODE], { type: 'application/javascript' });
+        const playbackBlob = new Blob([PLAYBACK_PROCESSOR_CODE], { type: 'application/javascript' });
+        const captureUrl = URL.createObjectURL(captureBlob);
+        const playbackUrl = URL.createObjectURL(playbackBlob);
+
+        await this.audioContext.audioWorklet.addModule(captureUrl);
+        await this.audioContext.audioWorklet.addModule(playbackUrl);
+
+        URL.revokeObjectURL(captureUrl);
+        URL.revokeObjectURL(playbackUrl);
+        this.workletModulesLoaded = true;
+      }
+
+      // Build capture audio graph:
+      //   Mic → Source → GainNode → AnalyserNode → CaptureWorkletNode
+      this.sourceNode = this.audioContext.createMediaStreamSource(this.localStream);
+
       this.gainNode = this.audioContext.createGain();
       this.gainNode.gain.value = settings.inputVolume / 100;
-      
-      // Create analyser for voice activity detection
+
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256;
-      
-      source.connect(this.gainNode);
+
+      this.captureNode = new AudioWorkletNode(this.audioContext, 'capture-processor');
+
+      this.sourceNode.connect(this.gainNode);
       this.gainNode.connect(this.analyser);
-      
+      this.analyser.connect(this.captureNode);
+
+      // Master output gain for remote user playback
+      this.masterOutputGain = this.audioContext.createGain();
+      this.masterOutputGain.gain.value = settings.outputVolume / 100;
+      this.masterOutputGain.connect(this.audioContext.destination);
+
+      // Set up Opus encoder
+      this.encoderTimestamp = 0;
+      this.encoder = new AudioEncoder({
+        output: (chunk: EncodedAudioChunk) => {
+          if (!this.isActive) return;
+          const buffer = new ArrayBuffer(chunk.byteLength);
+          chunk.copyTo(buffer);
+          this.sendEncodedFrame(buffer);
+        },
+        error: (e: DOMException) => {
+          console.error('AudioEncoder error:', e);
+        },
+      });
+
+      this.encoder.configure({
+        codec: 'opus',
+        sampleRate: 48000,
+        numberOfChannels: 1,
+        bitrate: settings.bitrate * 1000,
+      });
+
+      // Wire CaptureWorklet → AudioEncoder
+      this.captureNode.port.onmessage = (event: MessageEvent) => {
+        if (event.data.type !== 'frame' || !this.encoder || this.encoder.state !== 'configured') return;
+
+        const { samples } = event.data as { samples: Float32Array };
+
+        const audioData = new AudioData({
+          format: 'f32-planar' as AudioSampleFormat,
+          sampleRate: 48000,
+          numberOfFrames: samples.length,
+          numberOfChannels: 1,
+          timestamp: this.encoderTimestamp,
+          data: samples.buffer as ArrayBuffer,
+        });
+
+        this.encoderTimestamp += (samples.length / 48000) * 1_000_000; // microseconds
+
+        this.encoder.encode(audioData);
+        audioData.close();
+      };
+
       // Start voice activity detection
       this.startVoiceActivityDetection();
-      
+
+      // In PTT mode, start with capture disabled
+      if (settings.pushToTalk || useVoiceStore.getState().pushToTalk) {
+        this.captureNode.port.postMessage({ type: 'set-enabled', value: false });
+      }
+
       return true;
     } catch (error) {
       console.error('Failed to initialize audio:', error);
       return false;
     }
   }
-  
-  private startVoiceActivityDetection() {
+
+  // ── Voice Activity Detection ────────────────────────────────────────
+
+  private startVoiceActivityDetection(): void {
     if (!this.analyser) return;
-    
+
     const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-    
+
     const checkSpeaking = () => {
       if (!this.analyser) return;
-      
+
       const voiceStore = useVoiceStore.getState();
       const settings = useSettingsStore.getState();
-      
-      // In PTT mode, speaking indicator is handled by startPTT/stopPTT
-      // But we still check if mic is picking up audio while transmitting
+
+      this.analyser.getByteFrequencyData(dataArray);
+      const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+      const threshold = settings.voiceActivityThreshold || voiceStore.voiceActivityThreshold;
+      const isSpeaking = average > threshold;
+
       if (voiceStore.pushToTalk) {
-        // In PTT mode, only show speaking indicator when key is held AND audio is detected
+        // PTT mode: speaking indicator reflects actual audio while key is held
         if (this.localStream?.getAudioTracks()[0]?.enabled) {
-          this.analyser.getByteFrequencyData(dataArray);
-          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-          const threshold = settings.voiceActivityThreshold || voiceStore.voiceActivityThreshold;
-          const isActuallySpeaking = average > threshold;
-          
-          if (voiceStore.isSpeaking !== isActuallySpeaking) {
-            voiceStore.setIsSpeaking(isActuallySpeaking);
-            getInstanceSocket()?.sendSpeakingState(isActuallySpeaking);
+          if (voiceStore.isSpeaking !== isSpeaking) {
+            voiceStore.setIsSpeaking(isSpeaking);
+            getInstanceSocket()?.sendSpeakingState(isSpeaking);
           }
         }
         return;
       }
-      
-      // VAD mode - enable/disable track based on voice detection
-      this.analyser.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-      const threshold = settings.voiceActivityThreshold || voiceStore.voiceActivityThreshold;
-      const isSpeaking = average > threshold;
-      
+
+      // VAD mode: enable/disable capture based on speech detection
       if (voiceStore.isSpeaking !== isSpeaking && !voiceStore.selfMute) {
         voiceStore.setIsSpeaking(isSpeaking);
         getInstanceSocket()?.sendSpeakingState(isSpeaking);
-        
-        // In VAD mode, mute/unmute the track based on speaking
-        if (this.localStream) {
-          this.localStream.getAudioTracks().forEach((track) => {
-            track.enabled = isSpeaking && !voiceStore.selfMute;
-          });
-        }
+
+        // Enable/disable capture worklet based on VAD
+        this.captureNode?.port.postMessage({
+          type: 'set-enabled',
+          value: isSpeaking && !voiceStore.selfMute,
+        });
       }
     };
-    
+
     this.speakingCheckInterval = window.setInterval(checkSpeaking, 50);
   }
-  
-  // PTT key handlers
+
+  // ── Push-to-Talk ────────────────────────────────────────────────────
+
   startPTT(): void {
     const voiceStore = useVoiceStore.getState();
     if (!voiceStore.pushToTalk || voiceStore.selfMute) return;
-    
-    // Enable the audio track - speaking indicator will be updated by VAD check
+
+    this.captureNode?.port.postMessage({ type: 'set-enabled', value: true });
     if (this.localStream) {
       this.localStream.getAudioTracks().forEach((track) => {
         track.enabled = true;
       });
     }
   }
-  
+
   stopPTT(): void {
     const voiceStore = useVoiceStore.getState();
     if (!voiceStore.pushToTalk) return;
-    
-    // Disable the audio track and clear speaking state
+
+    this.captureNode?.port.postMessage({ type: 'set-enabled', value: false });
     if (this.localStream) {
       this.localStream.getAudioTracks().forEach((track) => {
         track.enabled = false;
       });
     }
-    
-    // Clear speaking state when PTT released
+
     voiceStore.setIsSpeaking(false);
     getInstanceSocket()?.sendSpeakingState(false);
-    
-    if (this.localStream) {
-      this.localStream.getAudioTracks().forEach((track) => {
-        track.enabled = false;
-      });
-    }
   }
-  
-  async joinChannel(channelId: string, serverId: string, channelKey?: string): Promise<void> {
-    this.channelKey = channelKey || null;
-    
+
+  // ── Channel Join / Leave ────────────────────────────────────────────
+
+  async joinChannel(channelId: string, serverId: string): Promise<void> {
     // Initialize audio if not already done
     if (!this.localStream) {
       const success = await this.initializeAudio();
@@ -174,338 +386,257 @@ class VoiceManager {
         throw new Error('Failed to initialize audio');
       }
     }
-    
-    // Connect via socket
-    const instanceSocket = getInstanceSocket();
-    instanceSocket?.joinVoiceChannel(channelId, serverId);
-    
-    // Set up signaling handlers
-    const socket = instanceSocket?.getSocket() ?? null;
-    if (socket) {
-      socket.on('voice:signal', this.handleSignal.bind(this));
-      socket.on('voice:user-joined', this.handleUserJoined.bind(this));
-      socket.on('voice:user-left', this.handleUserLeft.bind(this));
-      socket.on('voice:host-changed', this.handleHostChanged.bind(this));
-    }
-    
-    // Start quality monitoring
-    this.startQualityMonitoring();
+
+    // Emit join via socket — the server response ('voice:joined') is handled
+    // by instanceManager callbacks which update the Zustand store
+    getInstanceSocket()?.joinVoiceChannel(channelId, serverId);
+
+    this.isActive = true;
   }
-  
+
   async leaveChannel(): Promise<void> {
-    // Close all peer connections
-    for (const [userId, peer] of this.peers) {
-      peer.pc.close();
-      if (peer.audioElement) {
-        peer.audioElement.pause();
-        peer.audioElement.srcObject = null;
-      }
+    this.isActive = false;
+
+    // Notify server
+    getInstanceSocket()?.leaveVoiceChannel();
+
+    // Remove all remote users
+    for (const [userId] of this.remoteUsers) {
+      this.removeRemoteUser(userId);
     }
-    this.peers.clear();
-    
-    // Stop local stream
-    if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => track.stop());
-      this.localStream = null;
-    }
-    
-    // Stop voice activity detection
+    this.remoteUsers.clear();
+
+    // Stop capture pipeline
+    this.stopCapture();
+
+    // Reset voice store
+    useVoiceStore.getState().reset();
+  }
+
+  private stopCapture(): void {
+    // Stop VAD
     if (this.speakingCheckInterval) {
       clearInterval(this.speakingCheckInterval);
       this.speakingCheckInterval = null;
     }
-    
-    // Stop quality monitoring
-    if (this.qualityCheckInterval) {
-      clearInterval(this.qualityCheckInterval);
-      this.qualityCheckInterval = null;
+
+    // Close encoder
+    if (this.encoder && this.encoder.state !== 'closed') {
+      this.encoder.close();
+      this.encoder = null;
     }
-    
-    // Close audio context
-    if (this.audioContext) {
-      await this.audioContext.close();
-      this.audioContext = null;
-    }
-    
-    // Remove socket listeners
-    const instanceSocket = getInstanceSocket();
-    const socket = instanceSocket?.getSocket() ?? null;
-    if (socket) {
-      socket.off('voice:signal');
-      socket.off('voice:user-joined');
-      socket.off('voice:user-left');
-      socket.off('voice:host-changed');
-    }
-    
-    // Notify server
-    instanceSocket?.leaveVoiceChannel();
-    this.channelKey = null;
-  }
-  
-  private async handleUserJoined({ userId, username }: { userId: string; username: string }) {
-    // Create peer connection for new user and send offer
-    await this.createPeerConnection(userId, true);
-  }
-  
-  private handleUserLeft({ userId }: { userId: string }) {
-    const peer = this.peers.get(userId);
-    if (peer) {
-      peer.pc.close();
-      if (peer.audioElement) {
-        peer.audioElement.pause();
-        peer.audioElement.srcObject = null;
-      }
-      this.peers.delete(userId);
-    }
-  }
-  
-  private handleHostChanged({ hostUserId }: { hostUserId: string }) {
-    console.log('Voice host changed to:', hostUserId);
-    // Potentially reconnect peers through new host if using mesh-through-host topology
-    // For pure P2P mesh, this is just informational
-  }
-  
-  // Quality monitoring for host migration decisions
-  private startQualityMonitoring() {
-    this.qualityCheckInterval = window.setInterval(async () => {
-      const qualities: number[] = [];
-      
-      for (const [userId, peer] of this.peers) {
-        try {
-          const stats = await peer.pc.getStats();
-          let totalLatency = 0;
-          let totalPacketsLost = 0;
-          let packetsReceived = 0;
-          
-          stats.forEach((report) => {
-            if (report.type === 'inbound-rtp' && report.kind === 'audio') {
-              totalPacketsLost += report.packetsLost || 0;
-              packetsReceived += report.packetsReceived || 0;
-            }
-            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
-              totalLatency = report.currentRoundTripTime ? report.currentRoundTripTime * 1000 : 0;
-            }
-          });
-          
-          // Calculate quality score (0-100)
-          const packetLossRatio = packetsReceived > 0 ? totalPacketsLost / (totalPacketsLost + packetsReceived) : 0;
-          const latencyScore = Math.max(0, 100 - totalLatency); // Lower latency = higher score
-          const packetScore = Math.max(0, 100 - packetLossRatio * 100);
-          const quality = Math.round((latencyScore + packetScore) / 2);
-          
-          peer.latency = totalLatency;
-          peer.packetsLost = totalPacketsLost;
-          peer.lastStatsTime = Date.now();
-          
-          qualities.push(quality);
-        } catch (e) {
-          // Stats not available
-        }
-      }
-      
-      // Report average quality to server
-      if (qualities.length > 0) {
-        const avgQuality = Math.round(qualities.reduce((a, b) => a + b, 0) / qualities.length);
-        getInstanceSocket()?.sendConnectionQuality(avgQuality);
-      }
-    }, 5000); // Check every 5 seconds
-  }
-  
-  private async handleSignal({ fromUserId, signal }: { fromUserId: string; signal: any }) {
-    let peer = this.peers.get(fromUserId);
-    const settings = useSettingsStore.getState();
-    
-    if (signal.type === 'offer') {
-      // Received offer, create connection and send answer
-      if (!peer) {
-        await this.createPeerConnection(fromUserId, false);
-        peer = this.peers.get(fromUserId);
-      }
-      
-      if (peer) {
-        await peer.pc.setRemoteDescription(new RTCSessionDescription(signal));
-        const answer = await peer.pc.createAnswer();
-        
-        // Optimize Opus in answer SDP too
-        let sdp = answer.sdp || '';
-        sdp = this.optimizeOpusSdp(sdp, settings.bitrate);
-        answer.sdp = sdp;
-        
-        await peer.pc.setLocalDescription(answer);
-        getInstanceSocket()?.sendVoiceSignal(fromUserId, answer);
-      }
-    } else if (signal.type === 'answer') {
-      // Received answer to our offer
-      if (peer) {
-        await peer.pc.setRemoteDescription(new RTCSessionDescription(signal));
-      }
-    } else if (signal.candidate) {
-      // ICE candidate
-      if (peer) {
-        await peer.pc.addIceCandidate(new RTCIceCandidate(signal));
-      }
-    }
-  }
-  
-  private async createPeerConnection(userId: string, initiator: boolean): Promise<void> {
-    const settings = useSettingsStore.getState();
-    
-    const pc = new RTCPeerConnection({
-      iceServers: this.iceServers,
-      iceCandidatePoolSize: 10,
-    });
-    
-    // Add local stream tracks
+
+    // Disconnect capture graph
+    this.captureNode?.disconnect();
+    this.captureNode = null;
+    this.analyser?.disconnect();
+    this.analyser = null;
+    this.gainNode?.disconnect();
+    this.gainNode = null;
+    this.sourceNode?.disconnect();
+    this.sourceNode = null;
+
+    // Disconnect master output
+    this.masterOutputGain?.disconnect();
+    this.masterOutputGain = null;
+
+    // Stop mic stream
     if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => {
-        pc.addTrack(track, this.localStream!);
+      this.localStream.getTracks().forEach((track) => track.stop());
+      this.localStream = null;
+    }
+
+    // Close AudioContext
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close();
+      this.audioContext = null;
+      this.workletModulesLoaded = false;
+    }
+
+    this.encoderTimestamp = 0;
+  }
+
+  // ── Voice Data Handling (SFU Relay) ─────────────────────────────────
+
+  /** Send an encoded Opus frame to the instance server for relay */
+  private sendEncodedFrame(data: ArrayBuffer): void {
+    getInstanceSocket()?.sendVoiceData(data);
+  }
+
+  /** Handle an incoming relayed voice data frame from another user */
+  handleVoiceData(fromUserId: string, data: ArrayBuffer): void {
+    if (!this.isActive || !this.audioContext) return;
+
+    // Ignore own voice data (server uses socket.to() which excludes sender,
+    // but guard defensively)
+    const ownId = useVoiceStore.getState().hostUserId; // not ideal, but safe
+    if (fromUserId === ownId) return;
+
+    const remote = this.getOrCreateRemoteUser(fromUserId);
+
+    // Mark user as speaking
+    remote.lastReceivedTime = Date.now();
+    if (remote.speakingTimeout) {
+      clearTimeout(remote.speakingTimeout);
+    }
+
+    useVoiceStore.getState().updateUserVoiceState(fromUserId, { speaking: true });
+
+    // Clear speaking state after 300 ms of silence
+    remote.speakingTimeout = window.setTimeout(() => {
+      useVoiceStore.getState().updateUserVoiceState(fromUserId, { speaking: false });
+      remote.speakingTimeout = null;
+    }, 300);
+
+    // Decode the Opus frame
+    try {
+      const chunk = new EncodedAudioChunk({
+        type: 'key', // All Opus frames are independently decodable
+        timestamp: 0,
+        data,
       });
-    }
-    
-    // Handle ICE candidates
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        getInstanceSocket()?.sendVoiceSignal(userId, event.candidate);
-      }
-    };
-    
-    // Handle remote stream
-    pc.ontrack = (event) => {
-      const [remoteStream] = event.streams;
-      this.playRemoteAudio(userId, remoteStream);
-    };
-    
-    // Handle connection state
-    pc.onconnectionstatechange = () => {
-      console.log(`Connection state with ${userId}:`, pc.connectionState);
-      if (pc.connectionState === 'failed') {
-        // Try to reconnect
-        this.handleUserLeft({ userId });
-      }
-    };
-    
-    this.peers.set(userId, { pc, userId, latency: 0, packetsLost: 0, lastStatsTime: Date.now() });
-    
-    // If initiator, create and send offer with optimal Opus settings
-    if (initiator) {
-      const offer = await pc.createOffer();
-      
-      // Modify SDP to optimize Opus codec for voice
-      let sdp = offer.sdp || '';
-      sdp = this.optimizeOpusSdp(sdp, settings.bitrate);
-      offer.sdp = sdp;
-      
-      await pc.setLocalDescription(offer);
-      getInstanceSocket()?.sendVoiceSignal(userId, offer);
+
+      remote.decoder.decode(chunk);
+    } catch (e) {
+      console.error(`Failed to decode voice data from ${fromUserId}:`, e);
     }
   }
-  
-  // Optimize Opus codec settings in SDP for maximum efficiency
-  private optimizeOpusSdp(sdp: string, bitrate: number): string {
-    // Find Opus payload type
-    const opusMatch = sdp.match(/a=rtpmap:(\d+) opus\/48000\/2/);
-    if (!opusMatch) return sdp;
-    
-    const opusPayload = opusMatch[1];
-    
-    // Remove existing fmtp line for opus if present
-    sdp = sdp.replace(new RegExp(`a=fmtp:${opusPayload}[^\r\n]*\r\n`, 'g'), '');
-    
-    // Add optimized fmtp line for voice:
-    // - maxaveragebitrate: target bitrate in bits/sec
-    // - useinbandfec=1: enable forward error correction
-    // - usedtx=1: enable discontinuous transmission (saves bandwidth when silent)
-    // - stereo=0: mono for voice (more efficient)
-    // - cbr=0: variable bitrate (more efficient for voice)
-    // - maxplaybackrate=24000: optimize for voice frequencies
-    const fmtpLine = `a=fmtp:${opusPayload} minptime=10;useinbandfec=1;usedtx=1;stereo=0;cbr=0;maxaveragebitrate=${bitrate * 1000};maxplaybackrate=24000\r\n`;
-    
-    // Insert after rtpmap line
-    sdp = sdp.replace(
-      new RegExp(`(a=rtpmap:${opusPayload} opus/48000/2\r\n)`),
-      `$1${fmtpLine}`
-    );
-    
-    return sdp;
+
+  /** Handle a user leaving the voice channel */
+  handleUserLeft(userId: string): void {
+    this.removeRemoteUser(userId);
   }
-  
-  private playRemoteAudio(userId: string, stream: MediaStream): void {
-    const peer = this.peers.get(userId);
-    if (!peer) return;
-    
-    const settings = useSettingsStore.getState();
-    
-    // Create audio element for playback
-    const audio = new Audio();
-    audio.srcObject = stream;
-    audio.volume = settings.outputVolume / 100;
-    audio.autoplay = true;
-    
-    // Set output device if specified
-    if (settings.outputDevice && 'setSinkId' in audio) {
-      (audio as any).setSinkId(settings.outputDevice).catch(console.error);
+
+  // ── Remote User Management ──────────────────────────────────────────
+
+  private getOrCreateRemoteUser(userId: string): RemoteUserAudio {
+    const existing = this.remoteUsers.get(userId);
+    if (existing) return existing;
+
+    if (!this.audioContext || !this.masterOutputGain) {
+      throw new Error('AudioContext not initialized');
     }
-    
-    peer.audioElement = audio;
+
+    // Create per-user playback: AudioWorkletNode → GainNode → Master Output
+    const playbackNode = new AudioWorkletNode(this.audioContext, 'playback-processor');
+    const gainNode = this.audioContext.createGain();
+    gainNode.gain.value = 1.0;
+
+    playbackNode.connect(gainNode);
+    gainNode.connect(this.masterOutputGain);
+
+    // Create per-user AudioDecoder
+    const decoder = new AudioDecoder({
+      output: (audioData: AudioData) => {
+        try {
+          const samples = new Float32Array(audioData.numberOfFrames * audioData.numberOfChannels);
+          audioData.copyTo(samples, { planeIndex: 0 });
+          playbackNode.port.postMessage({ type: 'samples', samples });
+        } finally {
+          audioData.close();
+        }
+      },
+      error: (e: DOMException) => {
+        console.error(`AudioDecoder error for user ${userId}:`, e);
+      },
+    });
+
+    decoder.configure({
+      codec: 'opus',
+      sampleRate: 48000,
+      numberOfChannels: 1,
+    });
+
+    const remote: RemoteUserAudio = {
+      userId,
+      decoder,
+      playbackNode,
+      gainNode,
+      lastReceivedTime: Date.now(),
+      speakingTimeout: null,
+    };
+
+    this.remoteUsers.set(userId, remote);
+    return remote;
   }
-  
+
+  private removeRemoteUser(userId: string): void {
+    const remote = this.remoteUsers.get(userId);
+    if (!remote) return;
+
+    if (remote.speakingTimeout) {
+      clearTimeout(remote.speakingTimeout);
+    }
+
+    if (remote.decoder.state !== 'closed') {
+      remote.decoder.close();
+    }
+
+    remote.playbackNode.disconnect();
+    remote.gainNode.disconnect();
+
+    this.remoteUsers.delete(userId);
+  }
+
+  // ── Controls ────────────────────────────────────────────────────────
+
   setMute(muted: boolean): void {
+    this.captureNode?.port.postMessage({ type: 'set-enabled', value: !muted });
     if (this.localStream) {
       this.localStream.getAudioTracks().forEach((track) => {
         track.enabled = !muted;
       });
     }
+
     useVoiceStore.getState().setSelfMute(muted);
     getInstanceSocket()?.updateVoiceState(muted, useVoiceStore.getState().selfDeaf);
-  }
-  
-  setDeafen(deaf: boolean): void {
-    // Mute all remote audio
-    for (const [, peer] of this.peers) {
-      if (peer.audioElement) {
-        peer.audioElement.muted = deaf;
-      }
+
+    if (muted) {
+      useVoiceStore.getState().setIsSpeaking(false);
+      getInstanceSocket()?.sendSpeakingState(false);
     }
-    
-    // If deafening, also mute
+  }
+
+  setDeafen(deaf: boolean): void {
+    // Mute all remote audio by zeroing master output gain
+    if (this.masterOutputGain) {
+      this.masterOutputGain.gain.value = deaf
+        ? 0
+        : useSettingsStore.getState().outputVolume / 100;
+    }
+
+    // Deafening also mutes
     if (deaf) {
       this.setMute(true);
     }
-    
+
     useVoiceStore.getState().setSelfDeaf(deaf);
     getInstanceSocket()?.updateVoiceState(useVoiceStore.getState().selfMute, deaf);
   }
-  
+
   setInputVolume(volume: number): void {
     if (this.gainNode) {
       this.gainNode.gain.value = volume / 100;
     }
   }
-  
+
   setOutputVolume(volume: number): void {
-    for (const [, peer] of this.peers) {
-      if (peer.audioElement) {
-        peer.audioElement.volume = volume / 100;
-      }
+    if (this.masterOutputGain) {
+      this.masterOutputGain.gain.value = volume / 100;
     }
   }
-  
+
   async setBitrate(bitrate: number): Promise<void> {
-    for (const [, peer] of this.peers) {
-      const senders = peer.pc.getSenders();
-      for (const sender of senders) {
-        if (sender.track?.kind === 'audio') {
-          const params = sender.getParameters();
-          if (!params.encodings) {
-            params.encodings = [{}];
-          }
-          params.encodings[0].maxBitrate = bitrate * 1000;
-          await sender.setParameters(params);
-        }
-      }
+    if (this.encoder && this.encoder.state === 'configured') {
+      this.encoder.configure({
+        codec: 'opus',
+        sampleRate: 48000,
+        numberOfChannels: 1,
+        bitrate: bitrate * 1000,
+      });
     }
   }
-  
+
   async getAudioDevices(): Promise<{ input: MediaDeviceInfo[]; output: MediaDeviceInfo[] }> {
     const devices = await navigator.mediaDevices.enumerateDevices();
     return {
@@ -513,94 +644,62 @@ class VoiceManager {
       output: devices.filter((d) => d.kind === 'audiooutput'),
     };
   }
-  
+
   async setInputDevice(deviceId: string): Promise<void> {
-    if (!this.localStream) return;
-    
+    if (!this.audioContext || !this.gainNode) return;
+
     // Stop old tracks
-    this.localStream.getAudioTracks().forEach((track) => track.stop());
-    
+    if (this.localStream) {
+      this.localStream.getAudioTracks().forEach((track) => track.stop());
+    }
+
     // Get new stream with selected device
     const settings = useSettingsStore.getState();
-    const newStream = await navigator.mediaDevices.getUserMedia({
+    this.localStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         deviceId: { exact: deviceId },
         echoCancellation: settings.echoCancellation,
         noiseSuppression: settings.noiseSuppression,
         autoGainControl: settings.autoGainControl,
+        sampleRate: 48000,
+        channelCount: 1,
       },
     });
-    
-    this.localStream = newStream;
-    
-    // Replace tracks in all peer connections
-    const [newTrack] = newStream.getAudioTracks();
-    for (const [, peer] of this.peers) {
-      const sender = peer.pc.getSenders().find((s) => s.track?.kind === 'audio');
-      if (sender) {
-        await sender.replaceTrack(newTrack);
-      }
-    }
+
+    // Reconnect source node
+    this.sourceNode?.disconnect();
+    this.sourceNode = this.audioContext.createMediaStreamSource(this.localStream);
+    this.sourceNode.connect(this.gainNode);
   }
-  
+
   async setOutputDevice(deviceId: string): Promise<void> {
-    for (const [, peer] of this.peers) {
-      if (peer.audioElement && 'setSinkId' in peer.audioElement) {
-        await (peer.audioElement as any).setSinkId(deviceId);
-      }
+    if (this.audioContext && 'setSinkId' in this.audioContext) {
+      await (this.audioContext as any).setSinkId(deviceId);
     }
   }
-  
-  // Alias methods for compatibility
+
+  // Alias methods for component compatibility
   setMuted(muted: boolean): void {
     this.setMute(muted);
   }
-  
+
   setDeafened(deaf: boolean): void {
     this.setDeafen(deaf);
   }
-  
-  // Cleanup all connections and resources
+
+  // ── Cleanup ─────────────────────────────────────────────────────────
+
   cleanup(): void {
-    // Stop voice activity detection
-    if (this.speakingCheckInterval) {
-      clearInterval(this.speakingCheckInterval);
-      this.speakingCheckInterval = null;
+    this.isActive = false;
+
+    // Remove all remote users
+    for (const [userId] of this.remoteUsers) {
+      this.removeRemoteUser(userId);
     }
-    
-    // Close all peer connections
-    for (const [userId] of this.peers) {
-      this.removePeer(userId);
-    }
-    this.peers.clear();
-    
-    // Stop local stream
-    if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => track.stop());
-      this.localStream = null;
-    }
-    
-    // Close audio context
-    if (this.audioContext) {
-      this.audioContext.close();
-      this.audioContext = null;
-    }
-    
-    this.analyser = null;
-    this.gainNode = null;
-    this.channelKey = null;
-  }
-  
-  private removePeer(userId: string): void {
-    const peer = this.peers.get(userId);
-    if (peer) {
-      peer.pc.close();
-      if (peer.audioElement) {
-        peer.audioElement.pause();
-        peer.audioElement.srcObject = null;
-      }
-      this.peers.delete(userId);
-    }
+    this.remoteUsers.clear();
+
+    // Stop capture pipeline
+    this.stopCapture();
   }
 }
 
