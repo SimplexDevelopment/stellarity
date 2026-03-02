@@ -19,7 +19,7 @@ export const config = {
     tags: (process.env.INSTANCE_TAGS || '').split(',').filter(Boolean),
     maxMembers: parseInt(process.env.INSTANCE_MAX_MEMBERS || '500', 10),
     iconUrl: process.env.INSTANCE_ICON_URL || null,
-    dataDir: process.env.INSTANCE_DATA_DIR || path.resolve(__dirname, '../../data'),
+    dataDir: process.env.INSTANCE_DATA_DIR || path.resolve(process.cwd(), 'data'),
   },
 
   // Central Server Connection
