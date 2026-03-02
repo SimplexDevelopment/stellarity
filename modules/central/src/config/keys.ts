@@ -44,7 +44,7 @@ export async function initializeKeys(): Promise<void> {
     // Generate new keypair
     logger.info('No signing keys found, generating Ed25519 keypair...');
 
-    const keyPair = await generateKeyPair('EdDSA', { crv: 'Ed25519' });
+    const keyPair = await generateKeyPair('EdDSA', { crv: 'Ed25519', extractable: true });
     publicKey = keyPair.publicKey;
     privateKey = keyPair.privateKey;
 
