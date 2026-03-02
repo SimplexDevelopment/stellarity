@@ -46,6 +46,9 @@ export async function startPanelServer(): Promise<http.Server | null> {
 
   const app = express();
 
+  // CORS — allow same-origin, localhost, and configured panel origins
+  const panelOrigins = (process.env.PANEL_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+
   // Security
   app.use(helmet({
     contentSecurityPolicy: {
@@ -58,9 +61,6 @@ export async function startPanelServer(): Promise<http.Server | null> {
       },
     },
   }));
-
-  // CORS — allow same-origin, localhost, and configured panel origins
-  const panelOrigins = (process.env.PANEL_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
   app.use(cors({
     origin: (origin, callback) => {
       // Allow same-origin requests (no origin header) and localhost
