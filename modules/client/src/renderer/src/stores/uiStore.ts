@@ -7,6 +7,9 @@ interface UIState {
   isSidePanelOpen: boolean
   isMemberListOpen: boolean
   activeModal: string | null
+  profileUserId: string | null
+  /** Channel ID of the lobby whose settings are being edited */
+  lobbySettingsChannelId: string | null
 
   // Actions
   setViewMode: (mode: ViewMode) => void
@@ -16,6 +19,9 @@ interface UIState {
   setMemberListOpen: (open: boolean) => void
   openModal: (modalId: string) => void
   closeModal: () => void
+  openProfile: (userId: string) => void
+  closeProfile: () => void
+  openLobbySettings: (channelId: string) => void
 }
 
 export const useUIStore = create<UIState>()((set) => ({
@@ -23,6 +29,8 @@ export const useUIStore = create<UIState>()((set) => ({
   isSidePanelOpen: true,
   isMemberListOpen: false,
   activeModal: null,
+  profileUserId: null,
+  lobbySettingsChannelId: null,
 
   setViewMode: (viewMode) => set({ viewMode }),
   toggleSidePanel: () => set((s) => ({ isSidePanelOpen: !s.isSidePanelOpen })),
@@ -30,5 +38,8 @@ export const useUIStore = create<UIState>()((set) => ({
   toggleMemberList: () => set((s) => ({ isMemberListOpen: !s.isMemberListOpen })),
   setMemberListOpen: (isMemberListOpen) => set({ isMemberListOpen }),
   openModal: (activeModal) => set({ activeModal }),
-  closeModal: () => set({ activeModal: null }),
+  closeModal: () => set({ activeModal: null, lobbySettingsChannelId: null }),
+  openProfile: (profileUserId) => set({ profileUserId }),
+  closeProfile: () => set({ profileUserId: null }),
+  openLobbySettings: (channelId) => set({ activeModal: 'lobby-settings', lobbySettingsChannelId: channelId }),
 }))

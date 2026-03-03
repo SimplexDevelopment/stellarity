@@ -771,3 +771,138 @@
 .btn--danger:hover {
   background: rgba(240, 71, 71, 0.1);
 }
+
+/* ───────────────────────────────────────────────────────
+   Form elements (used in LobbySettingsModal, etc.)
+─────────────────────────────────────────────────────── */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.modal-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.modal-desc strong {
+  color: var(--text-primary);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+  margin-top: var(--spacing-sm);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-label--checkbox {
+  flex-direction: row;
+  cursor: pointer;
+  text-transform: none;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.form-label--checkbox input[type="checkbox"] {
+  accent-color: var(--accent-primary);
+}
+
+.form-input {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+
+.form-input:focus {
+  border-color: var(--accent-primary);
+  outline: none;
+}
+
+.form-input[type="number"] {
+  width: 100px;
+}
+
+.form-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--input-bg);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.form-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(var(--accent-primary-rgb, 0, 212, 255), 0.4);
+  transition: box-shadow var(--transition-fast);
+}
+
+.form-range::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 10px rgba(var(--accent-primary-rgb, 0, 212, 255), 0.6);
+}
+
+.form-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(var(--accent-primary-rgb, 0, 212, 255), 0.4);
+}
+
+.form-range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.form-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.form-error {
+  font-size: 12px;
+  color: var(--status-danger);
+  background: rgba(255, 59, 92, 0.08);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 59, 92, 0.15);
+}

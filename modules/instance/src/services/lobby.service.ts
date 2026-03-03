@@ -1,5 +1,6 @@
 import { query, generateId, now } from '../database/database.js';
 import { voiceChannels } from '../database/redis.js';
+import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { emitToServer } from '../socket/emitter.js';
 
@@ -137,6 +138,60 @@ class LobbyService {
   }
 
   // ── Server Features ──────────────────────────────────────────────
+
+  /** Get the instance-level maximum bitrate (in bps) */
+  getMaxBitrate(): number {
+    return config.voice.maxBitrate;
+  }
+
+  /** Update lobby settings (name, bitrate, userLimit, password) */
+  async updateLobby(
+    channelId: string,
+    input: { name?: string; bitrate?: number; userLimit?: number; password?: string; removePassword?: boolean }
+  ): Promise<Channel> {
+    const existing = query(`SELECT * FROM channels WHERE id = $1`, [channelId]);
+    if (existing.rows.length === 0) {
+      throw new Error('Channel not found');
+    }
+
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    if (input.name !== undefined) {
+      updates.push(`name = $${paramIndex++}`);
+      values.push(input.name);
+    }
+    if (input.bitrate !== undefined) {
+      // Clamp to instance max bitrate
+      const clamped = Math.min(input.bitrate, config.voice.maxBitrate);
+      updates.push(`bitrate = $${paramIndex++}`);
+      values.push(clamped);
+    }
+    if (input.userLimit !== undefined) {
+      updates.push(`user_limit = $${paramIndex++}`);
+      values.push(input.userLimit);
+    }
+    if (input.removePassword) {
+      updates.push(`password_hash = $${paramIndex++}`);
+      values.push(null);
+    } else if (input.password) {
+      const hash = await Bun.password.hash(input.password, { algorithm: 'argon2id' });
+      updates.push(`password_hash = $${paramIndex++}`);
+      values.push(hash);
+    }
+
+    if (updates.length > 0) {
+      values.push(channelId);
+      query(
+        `UPDATE channels SET ${updates.join(', ')} WHERE id = $${paramIndex}`,
+        values
+      );
+    }
+
+    const result = query(`SELECT * FROM channels WHERE id = $1`, [channelId]);
+    return this.mapChannel(result.rows[0]);
+  }
 
   /** Get server features (with defaults) */
   getServerFeatures(serverId: string): ServerFeatures {

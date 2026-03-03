@@ -129,7 +129,7 @@ export function registerVoiceHandlers(io: SocketServer, socket: AuthenticatedSoc
             try {
               const overflowChannel = await lobbyService.createOverflowLobby(serverId, channelId);
               io.to(`server:${serverId}`).emit('lobby:created', { channel: overflowChannel });
-              io.to(`server:${serverId}`).emit('channel:created', { channel: overflowChannel });
+              io.to(`server:${serverId}`).emit('channel:created', overflowChannel);
 
               const overflowResult = await voiceService.joinChannel(
                 socket.userId!,

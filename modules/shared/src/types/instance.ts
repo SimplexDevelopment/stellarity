@@ -53,6 +53,8 @@ export interface InstancePublicInfo {
   region: string | null;
   tags: string[];
   version: string;
+  /** Maximum bitrate (in bps) allowed by this instance for voice channels */
+  maxBitrate: number;
 }
 
 /** Connection state for an instance from the client's perspective */

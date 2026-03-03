@@ -101,6 +101,7 @@ class InstanceManager {
     }
 
     const normalizedUrl = normalizeInstanceUrl(instanceUrl);
+    console.log(`[InstanceManager] Connecting to ${instanceName} at ${normalizedUrl}`);
 
     // Create API client
     const api = new InstanceApiClient(normalizedUrl, instanceId);
@@ -132,6 +133,18 @@ class InstanceManager {
 
       connection.status = 'connected';
       useInstanceStore.getState().setOnlineStatus(instanceId, 'online');
+
+      // Fetch instance capabilities (maxBitrate, etc.)
+      try {
+        const info = await api.instance.info();
+        if (info?.maxBitrate) {
+          useInstanceStore.getState().setInstanceCapabilities(instanceId, {
+            maxBitrate: info.maxBitrate,
+          });
+        }
+      } catch {
+        // Non-critical — older instances may not expose maxBitrate
+      }
 
       // Load servers for this instance
       const result = await api.servers.list();
@@ -222,10 +235,17 @@ class InstanceManager {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), HEALTH_CHECK_TIMEOUT);
-      const resp = await fetch(`${url}/health`, { signal: controller.signal });
+      const resp = await fetch(`${url}/health`, {
+        signal: controller.signal,
+        credentials: 'omit',  // Health checks don't need cookies/auth
+      });
       clearTimeout(timeout);
+      if (!resp.ok) {
+        console.warn(`[InstanceManager] Health check failed for ${url}: HTTP ${resp.status}`);
+      }
       return resp.ok;
-    } catch {
+    } catch (err) {
+      console.warn(`[InstanceManager] Health check error for ${url}:`, err);
       return false;
     }
   }

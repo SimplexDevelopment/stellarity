@@ -254,6 +254,12 @@ export class InstanceApiClient {
         body: JSON.stringify(data),
       }),
 
+    update: (serverId: string, channelId: string, data: { name?: string; bitrate?: number; userLimit?: number; password?: string; removePassword?: boolean }) =>
+      this.request<{ channel: any }>(`/api/servers/${serverId}/lobbies/${channelId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+
     delete: (serverId: string, channelId: string) =>
       this.request(`/api/servers/${serverId}/lobbies/${channelId}`, { method: 'DELETE' }),
 

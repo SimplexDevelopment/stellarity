@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import { CloseIcon, ServerIcon, PlusIcon, HashIcon, WaveformIcon, GlobeIcon, LockIcon, KeyIcon } from '../Icons'
 import './Modal.css'
 
@@ -153,11 +153,12 @@ interface CreateChannelModalProps {
     bitrate?: number
   }) => void
   categories?: { id: string; name: string; position: number }[]
+  defaultType?: 'text' | 'voice'
 }
 
-export const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, onClose, onCreateChannel, categories = [] }) => {
+export const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, onClose, onCreateChannel, categories = [], defaultType = 'text' }) => {
   const [name, setName] = useState('')
-  const [type, setType] = useState<'text' | 'voice'>('text')
+  const [type, setType] = useState<'text' | 'voice'>(defaultType)
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState<string>('')
   const [userLimit, setUserLimit] = useState(0)
@@ -177,7 +178,7 @@ export const CreateChannelModal: React.FC<CreateChannelModalProps> = ({ isOpen, 
     setLoading(false); handleClose()
   }
 
-  const handleClose = () => { setName(''); setType('text'); setDescription(''); setCategoryId(''); setUserLimit(0); setBitrate(64000); onClose() }
+  const handleClose = () => { setName(''); setType(defaultType); setDescription(''); setCategoryId(''); setUserLimit(0); setBitrate(64000); onClose() }
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="CREATE CHANNEL">

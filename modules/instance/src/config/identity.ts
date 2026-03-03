@@ -71,6 +71,7 @@ export async function getInstancePublicInfo(): Promise<InstancePublicInfo> {
     region: config.instance.region,
     tags: config.instance.tags,
     version: '1.0.0',
+    maxBitrate: config.voice.maxBitrate,
   };
 }
 

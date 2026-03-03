@@ -5,13 +5,12 @@
 .app {
   height: 100vh;
   display: grid;
-  grid-template-rows: var(--titlebar-height) var(--telemetry-height) 1fr var(--statusdock-height);
+  grid-template-rows: var(--titlebar-height) var(--telemetry-height) 1fr;
   grid-template-columns: 1fr;
   grid-template-areas:
     "titlebar"
     "telemetry"
-    "content"
-    "statusdock";
+    "content";
   background: var(--panel-bg-deep);
   overflow: hidden;
   position: relative;
@@ -111,8 +110,4 @@
   transform: translateX(0);
 }
 
-/* -- Status Dock ------------------------------------------ */
-.app-statusdock {
-  border-top: 1px solid var(--panel-border);
-  background: var(--panel-bg-secondary);
-}
+

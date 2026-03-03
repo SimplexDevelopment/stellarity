@@ -280,6 +280,12 @@
   gap: 6px;
   padding: 3px var(--spacing-sm);
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.voice-user:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .voice-user--speaking {
@@ -287,6 +293,7 @@
 }
 
 .voice-user__avatar {
+  position: relative;
   width: 22px;
   height: 22px;
   display: flex;
@@ -297,10 +304,12 @@
   font-size: 9px;
   font-weight: 700;
   color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
 }
 
 .voice-user--speaking .voice-user__avatar {
-  box-shadow: 0 0 0 1.5px var(--status-online);
+  box-shadow: 0 0 0 1.5px var(--status-online), 0 0 8px rgba(0, 255, 136, 0.3);
   color: var(--status-online);
 }
 
@@ -311,6 +320,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color var(--transition-fast), text-shadow var(--transition-fast);
+}
+
+.voice-user--speaking .voice-user__name {
+  color: var(--text-primary);
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.25);
 }
 
 .voice-user__status {
@@ -384,6 +399,20 @@
 
 .ctx-menu__item:hover .ctx-menu__icon {
   color: var(--accent-primary);
+}
+
+.ctx-menu__item--danger {
+  color: var(--status-danger);
+}
+
+.ctx-menu__item--danger:hover {
+  background: rgba(255, 59, 92, 0.1);
+  color: var(--status-danger);
+}
+
+.ctx-menu__item--danger .ctx-menu__icon,
+.ctx-menu__item--danger:hover .ctx-menu__icon {
+  color: var(--status-danger);
 }
 
 .ctx-menu__sep {

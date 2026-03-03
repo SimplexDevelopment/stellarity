@@ -4,7 +4,7 @@ import { serverService } from '../services/server.service.js';
 import { voiceService } from '../services/voice.service.js';
 import { authenticate, AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { validate } from '../middleware/validation.middleware.js';
-import { createLobbySchema, serverFeaturesSchema } from '../utils/validation.js';
+import { createLobbySchema, serverFeaturesSchema, updateLobbySchema } from '../utils/validation.js';
 import { logger } from '../utils/logger.js';
 import { emitToServer } from '../socket/emitter.js';
 
@@ -54,7 +54,7 @@ router.post(
 
       // Broadcast to server
       emitToServer(serverId, 'lobby:created', { channel });
-      emitToServer(serverId, 'channel:created', { channel });
+      emitToServer(serverId, 'channel:created', channel);
 
       res.status(201).json({ channel });
     } catch (error: any) {
@@ -99,6 +99,41 @@ router.delete('/:serverId/lobbies/:channelId', async (req: AuthenticatedRequest,
     res.status(400).json({ error: error.message });
   }
 });
+
+// Update lobby settings (name, bitrate, userLimit, password)
+router.patch(
+  '/:serverId/lobbies/:channelId',
+  validate(updateLobbySchema),
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { serverId, channelId } = req.params;
+
+      // Check if lobby creator or has manageChannels permission
+      const canManage = await serverService.hasPermission(serverId, req.user!.userId, 'manageChannels');
+      const channelResult = await serverService.getChannelById(channelId);
+      if (!channelResult) {
+        res.status(404).json({ error: 'Lobby not found' });
+        return;
+      }
+
+      const isCreator = channelResult.createdBy === req.user!.userId;
+      if (!canManage && !isCreator) {
+        res.status(403).json({ error: 'You do not have permission to edit this lobby' });
+        return;
+      }
+
+      const channel = await lobbyService.updateLobby(channelId, req.body);
+
+      // Broadcast the updated channel to the server
+      emitToServer(serverId, 'channel:updated', channel);
+
+      res.json({ channel });
+    } catch (error: any) {
+      logger.error('Update lobby error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  }
+);
 
 // Verify lobby password
 router.post('/:serverId/lobbies/:channelId/verify', async (req: AuthenticatedRequest, res: Response) => {

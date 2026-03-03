@@ -1,0 +1,187 @@
+/* ── Voice Lobby Panel ────────────────────────────────── */
+.voice-lobby {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-top: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.15);
+  font-family: var(--font-mono);
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.voice-lobby__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-sm);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.voice-lobby__signal {
+  color: var(--status-online);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px var(--status-online));
+}
+
+.voice-lobby__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.voice-lobby__status {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--status-online);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.voice-lobby__channel {
+  font-size: 11px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── User List ───────────────────────────────────────── */
+.voice-lobby__users {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-xs) 0;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* ── User Row ────────────────────────────────────────── */
+.voice-lobby__user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px var(--spacing-sm);
+  transition: background var(--transition-fast);
+  cursor: pointer;
+}
+
+.voice-lobby__user:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Avatar ──────────────────────────────────────────── */
+.voice-lobby__avatar {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.voice-lobby__user--speaking .voice-lobby__avatar {
+  color: var(--status-online);
+}
+
+/* Speaking ring — animated glow border around avatar */
+.voice-lobby__speak-ring {
+  position: absolute;
+  inset: -3px;
+  border: 1.5px solid var(--status-online);
+  border-radius: calc(var(--radius-sm) + 2px);
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.35), inset 0 0 4px rgba(0, 255, 136, 0.1);
+  animation: lobby-speak-pulse 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Name ────────────────────────────────────────────── */
+.voice-lobby__name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color var(--transition-fast), text-shadow var(--transition-fast);
+}
+
+.voice-lobby__user--speaking .voice-lobby__name {
+  color: var(--text-primary);
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+}
+
+/* ── State Icons ─────────────────────────────────────── */
+.voice-lobby__indicators {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.voice-lobby__icon--muted,
+.voice-lobby__icon--deaf {
+  color: var(--status-danger);
+  opacity: 0.8;
+}
+
+/* ── Controls ────────────────────────────────────────── */
+.voice-lobby__controls {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.voice-lobby__btn {
+  width: 34px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.voice-lobby__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.voice-lobby__btn--danger {
+  color: var(--status-danger);
+  background: rgba(255, 59, 92, 0.1);
+}
+
+.voice-lobby__btn--danger:hover {
+  background: rgba(255, 59, 92, 0.2);
+}
+
+.voice-lobby__btn--disconnect {
+  color: var(--status-danger);
+}
+
+.voice-lobby__btn--disconnect:hover {
+  background: var(--status-danger);
+  color: white;
+}
+
+/* ── Speaking Pulse Animation ────────────────────────── */
+@keyframes lobby-speak-pulse {
+  0%, 100% {
+    opacity: 0.7;
+    box-shadow: 0 0 6px rgba(0, 255, 136, 0.35), inset 0 0 4px rgba(0, 255, 136, 0.1);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.5), inset 0 0 6px rgba(0, 255, 136, 0.15);
+  }
+}

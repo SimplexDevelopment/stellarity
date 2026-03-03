@@ -2,6 +2,7 @@
 import { useServerStore, VoiceOccupantUser } from '../../stores/serverStore'
 import { useVoiceStore } from '../../stores/voiceStore'
 import { useAuthStore } from '../../stores/authStore'
+import { useUIStore } from '../../stores/uiStore'
 import { instanceManager } from '../../utils/instanceManager'
 import { voiceManager } from '../../utils/voiceManager'
 import {
@@ -16,11 +17,13 @@ import {
   LockIcon,
   BuildLobbyIcon,
   FolderIcon,
+  TrashIcon,
 } from '../Icons'
+import { VoiceLobby } from '../VoiceLobby'
 import './ChannelList.css'
 
 interface ChannelListProps {
-  onCreateChannel: () => void
+  onCreateChannel: (defaultType?: 'text' | 'voice') => void
   onOpenSettings?: () => void
   onAddServer?: () => void
   onCreateLobby?: () => void
@@ -50,15 +53,21 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     isConnected,
     currentChannelId: voiceChannelId,
     channelUsers,
+    isSpeaking: localSpeaking,
   } = useVoiceStore()
   const currentUserId = useAuthStore((s) => s.user?.id)
+  const { openProfile, openLobbySettings } = useUIStore()
 
   // Track collapsed categories
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
 
-  // Context menu state
+  // Context menu state (general sidebar)
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
   const ctxRef = useRef<HTMLDivElement>(null)
+
+  // Channel-specific context menu state (right-click on a voice/lobby channel)
+  const [channelCtx, setChannelCtx] = useState<{ x: number; y: number; channelId: string } | null>(null)
+  const channelCtxRef = useRef<HTMLDivElement>(null)
 
   // Drag-and-drop state
   const [dragChannelId, setDragChannelId] = useState<string | null>(null)
@@ -72,15 +81,18 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
   // Close context menu on outside click or Escape
   useEffect(() => {
-    if (!ctxMenu) return
+    if (!ctxMenu && !channelCtx) return
     const onClickOutside = (e: MouseEvent) => {
-      if (ctxRef.current && !ctxRef.current.contains(e.target as Node)) setCtxMenu(null)
+      if (ctxMenu && ctxRef.current && !ctxRef.current.contains(e.target as Node)) setCtxMenu(null)
+      if (channelCtx && channelCtxRef.current && !channelCtxRef.current.contains(e.target as Node)) setChannelCtx(null)
     }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setCtxMenu(null) }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setCtxMenu(null); setChannelCtx(null) }
+    }
     document.addEventListener('mousedown', onClickOutside)
     document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('mousedown', onClickOutside); document.removeEventListener('keydown', onKey) }
-  }, [ctxMenu])
+  }, [ctxMenu, channelCtx])
 
   // Permission check: owner or has manageChannels
   const canManageChannels = (() => {
@@ -98,6 +110,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (!canManageChannels) return
+    // Only show on empty space — not on interactive elements
+    const target = e.target as HTMLElement
+    if (target.closest('.channel-item, .voice-user, .category-label, .sidepanel-header, .voice-lobby, .sidepanel-empty')) return
     e.preventDefault()
     setCtxMenu({ x: e.clientX, y: e.clientY })
   }, [canManageChannels])
@@ -243,11 +258,13 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       setCurrentChannel(ch.id)
     } else {
       if (voiceChannelId === ch.id) {
-        await voiceManager.leaveChannel()
+        // Already connected — just focus the voice panel
+        setCurrentChannel(ch.id)
       } else {
         if (voiceChannelId) {
           await voiceManager.leaveChannel()
         }
+        setCurrentChannel(ch.id)
         await voiceManager.joinChannel(ch.id, currentServerId!)
       }
     }
@@ -292,11 +309,18 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     return (
       <div className="voice-users">
         {occupants.map((u) => {
+          const isLocalUser = u.userId === currentUserId
           const isSpeaking = voiceChannelId === channelId
-            ? channelUsers.find(cu => cu.userId === u.userId)?.speaking
+            ? (isLocalUser ? localSpeaking : channelUsers.find(cu => cu.userId === u.userId)?.speaking)
             : false
           return (
-            <div key={u.userId} className={`voice-user ${isSpeaking ? 'voice-user--speaking' : ''}`}>
+            <div
+              key={u.userId}
+              className={`voice-user ${isSpeaking ? 'voice-user--speaking' : ''}`}
+              onClick={(e) => { e.stopPropagation(); openProfile(u.userId) }}
+              role="button"
+              tabIndex={0}
+            >
               <div className="voice-user__avatar">
                 {(u.displayName || u.username || 'U')[0].toUpperCase()}
               </div>
@@ -315,11 +339,22 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     const isActive = isVoice ? voiceChannelId === ch.id : currentChannelId === ch.id
     const occupants = isVoice ? getVoiceOccupants(ch.id) : []
     const isDragging = dragChannelId === ch.id
+    const canEditLobby = isVoice && (ch.createdBy === currentUserId || canManageChannels)
+
+    const handleChannelContextMenu = (e: React.MouseEvent) => {
+      if (!canEditLobby) return
+      e.preventDefault()
+      e.stopPropagation()
+      setCtxMenu(null)
+      setChannelCtx({ x: e.clientX, y: e.clientY, channelId: ch.id })
+    }
+
     return (
       <React.Fragment key={ch.id}>
         <button
           className={`channel-item ${isVoice ? 'channel-item--voice' : ''} ${isActive ? 'channel-item--active' : ''} ${ch.isTemporary ? 'channel-item--temp' : ''} ${isDragging ? 'channel-item--dragging' : ''}`}
           onClick={() => handleChannelClick(ch)}
+          onContextMenu={isVoice ? handleChannelContextMenu : undefined}
           draggable={canManageChannels}
           onDragStart={(e) => handleDragStart(e, ch.id)}
           onDragEnd={handleDragEnd}
@@ -356,7 +391,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   }
 
   return (
-    <div className="sidepanel" onContextMenu={handleContextMenu}>
+    <div className="sidepanel">
       {/* Right-click context menu */}
       {ctxMenu && (
         <div
@@ -375,11 +410,55 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           <div className="ctx-menu__sep" />
           <button className="ctx-menu__item" onClick={() => {
             setCtxMenu(null)
-            onCreateChannel()
+            onCreateChannel('text')
           }}>
-            <PlusIcon size={14} className="ctx-menu__icon" />
-            <span>New Channel</span>
+            <HashIcon size={14} className="ctx-menu__icon" />
+            <span>New Relay</span>
           </button>
+          <button className="ctx-menu__item" onClick={() => {
+            setCtxMenu(null)
+            onCreateChannel('voice')
+          }}>
+            <WaveformIcon size={14} className="ctx-menu__icon" />
+            <span>New Comms Channel</span>
+          </button>
+        </div>
+      )}
+
+      {/* Channel-specific context menu (right-click on voice/lobby channel) */}
+      {channelCtx && (
+        <div
+          ref={channelCtxRef}
+          className="ctx-menu"
+          style={{ top: channelCtx.y, left: channelCtx.x }}
+        >
+          <button className="ctx-menu__item" onClick={() => {
+            openLobbySettings(channelCtx.channelId)
+            setChannelCtx(null)
+          }}>
+            <GearIcon size={14} className="ctx-menu__icon" />
+            <span>Settings</span>
+          </button>
+          {(() => {
+            const ch = channels.find(c => c.id === channelCtx.channelId)
+            if (!ch?.isTemporary) return null
+            return (
+              <button className="ctx-menu__item ctx-menu__item--danger" onClick={async () => {
+                setChannelCtx(null)
+                if (!currentServerId || !currentInstanceId) return
+                const conn = instanceManager.getInstance(currentInstanceId)
+                if (!conn) return
+                try {
+                  await conn.api.channels.delete(currentServerId, channelCtx.channelId)
+                } catch (err) {
+                  console.error('Failed to delete lobby:', err)
+                }
+              }}>
+                <TrashIcon size={14} className="ctx-menu__icon" />
+                <span>Delete Lobby</span>
+              </button>
+            )
+          })()}
         </div>
       )}
 
@@ -397,7 +476,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       </div>
 
       {/* Channel list with collapsible categories */}
-      <div className="sidepanel-channels">
+      <div className="sidepanel-channels" onContextMenu={handleContextMenu}>
         {/* Uncategorized channels */}
         {(uncategorizedText.length > 0 || uncategorizedVoice.length > 0 || dragChannelId) && (
           <div
@@ -409,7 +488,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           >
             <div className="category-label">
               <span>CHANNELS</span>
-              <button className="category-add" onClick={onCreateChannel} data-tooltip="Create Channel">
+              <button className="category-add" onClick={() => onCreateChannel()} data-tooltip="Create Channel">
                 <PlusIcon size={12} />
               </button>
             </div>
@@ -458,7 +537,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                 <button
                   className="category-add"
                   onClick={(e) => { e.stopPropagation(); onCreateChannel(); }}
-                  data-tooltip="Create Channel"
+                  data-tooltip="Create channel"
                 >
                   <PlusIcon size={12} />
                 </button>
@@ -482,6 +561,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           </div>
         )}
       </div>
+
+      {/* Voice Lobby — fixed footer when connected to voice */}
+      <VoiceLobby />
     </div>
   )
 }

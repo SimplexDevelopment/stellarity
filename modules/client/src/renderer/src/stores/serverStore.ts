@@ -194,7 +194,9 @@ export const useServerStore = create<ServerState>((set) => ({
   setChannels: (channels) => set({ channels }),
   
   addChannel: (channel) => set((state) => ({
-    channels: [...state.channels, channel]
+    channels: state.channels.some(c => c.id === channel.id)
+      ? state.channels
+      : [...state.channels, channel]
   })),
 
   updateChannel: (channelId, updates) => set((state) => ({

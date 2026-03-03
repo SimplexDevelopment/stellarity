@@ -77,6 +77,7 @@ export const config = {
   voice: {
     maxUsersPerChannel: parseInt(process.env.VOICE_MAX_USERS_PER_CHANNEL || '50', 10),
     bitrate: parseInt(process.env.VOICE_BITRATE || '64000', 10),
+    maxBitrate: parseInt(process.env.VOICE_MAX_BITRATE || '512000', 10),
   },
 
   // Management Panel

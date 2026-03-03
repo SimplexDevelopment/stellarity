@@ -122,11 +122,12 @@
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
 }
 
 .voice-card--speaking {
   border-color: var(--status-online);
-  box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.15), inset 0 0 8px rgba(0, 255, 136, 0.05);
 }
 
 .voice-card--self {
@@ -143,7 +144,8 @@
   inset: -4px;
   border: 2px solid var(--status-online);
   border-radius: inherit;
-  animation: speakingPulse 1s ease-out infinite;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.4), inset 0 0 4px rgba(0, 255, 136, 0.1);
+  animation: speakingPulse 1.2s ease-in-out infinite;
 }
 
 .voice-card__info { text-align: center; }
@@ -176,72 +178,4 @@
   font-size: 13px;
 }
 
-/* ── Controls ────────────────────────────────────────── */
-.voice__controls {
-  padding: var(--spacing-md);
-}
 
-.voice__controls-row {
-  display: flex;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-}
-
-.voice__ctrl {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: var(--radius-md);
-  min-width: 72px;
-  color: var(--text-secondary);
-  transition: all var(--transition-fast);
-}
-
-.voice__ctrl:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
-
-.voice__ctrl--active {
-  background: rgba(255, 59, 92, 0.12);
-  color: var(--status-danger);
-}
-
-.voice__ctrl--disconnect {
-  background: rgba(255, 59, 92, 0.12);
-  color: var(--status-danger);
-}
-
-.voice__ctrl--disconnect:hover {
-  background: var(--status-danger);
-  color: white;
-}
-
-.voice__ctrl span {
-  font-size: 10px;
-  font-weight: 500;
-}
-
-/* ── Bitrate ─────────────────────────────────────────── */
-.voice__bitrate {
-  padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--panel-border);
-}
-
-.voice__bitrate label {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.voice__bitrate input[type="range"] {
-  width: 100%;
-  accent-color: var(--accent-primary);
-}

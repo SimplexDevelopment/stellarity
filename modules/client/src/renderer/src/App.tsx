@@ -5,13 +5,14 @@ import { AuthScreen } from './components/Auth/Auth'
 import { ChannelList } from './components/ChannelList/ChannelList'
 import { ChatArea } from './components/ChatArea/ChatArea'
 import { MemberList } from './components/MemberList/MemberList'
-import { StatusDock } from './components/StatusDock/StatusDock'
 import { CreateServerModal, CreateChannelModal } from './components/Modal/Modal'
 import { CreateLobbyModal } from './components/Modal/CreateLobbyModal'
 import { ServerSettingsModal } from './components/Modal/ServerSettingsModal'
 import { AddInstanceModal } from './components/Modal/AddInstanceModal'
 import { InstanceSwitcherModal } from './components/Modal/InstanceSwitcherModal'
 import { ServerBrowserModal } from './components/Modal/ServerBrowserModal'
+import { UserProfileModal } from './components/Modal/UserProfileModal'
+import { LobbySettingsModal } from './components/Modal/LobbySettingsModal'
 import { UserSettings } from './components/UserSettings/UserSettings'
 import { Discovery } from './components/Discovery/Discovery'
 import { DirectMessages } from './components/DirectMessages/DirectMessages'
@@ -60,6 +61,7 @@ const App: React.FC = () => {
 
   const [loading, setLoading] = useState(true)
   const [browseInstanceId, setBrowseInstanceId] = useState<string | null>(null)
+  const [defaultChannelType, setDefaultChannelType] = useState<'text' | 'voice'>('text')
 
   useTheme()
 
@@ -211,7 +213,21 @@ const App: React.FC = () => {
     const conn = instanceManager.getInstance(currentInstanceId)
     if (!conn) return
     try {
-      await conn.api.lobbies.create(currentServerId, { name, userLimit, password })
+      const result = await conn.api.lobbies.create(currentServerId, { name, userLimit, password })
+      const channel = result.channel
+
+      // Add channel to store immediately (socket broadcast also does this, but
+      // we need it in state before we can join voice)
+      useServerStore.getState().addChannel(channel)
+
+      // Leave current voice channel if connected
+      if (useVoiceStore.getState().isConnected) {
+        await voiceManager.leaveChannel()
+      }
+
+      // Auto-join the creator into the new lobby
+      useServerStore.getState().setCurrentChannel(channel.id)
+      await voiceManager.joinChannel(channel.id, currentServerId)
     } catch (e) { console.error('Failed to create lobby:', e) }
   }
 
@@ -290,7 +306,7 @@ const App: React.FC = () => {
         {currentServerId && viewMode === 'server' && (
           <aside className="app-channelpanel">
             <ChannelList
-              onCreateChannel={() => openModal('create-channel')}
+              onCreateChannel={(type) => { if (type) setDefaultChannelType(type); openModal('create-channel') }}
               onCreateLobby={() => openModal('create-lobby')}
               onOpenSettings={() => openModal('server-settings')}
             />
@@ -323,11 +339,6 @@ const App: React.FC = () => {
         </main>
       </div>
 
-      {/* Status Dock */}
-      <div className="app-statusdock">
-        <StatusDock />
-      </div>
-
       {/* Modals */}
       <CreateServerModal
         isOpen={activeModal === 'create-server'}
@@ -340,6 +351,7 @@ const App: React.FC = () => {
         onClose={closeModal}
         onCreateChannel={handleCreateChannel}
         categories={useServerStore.getState().categories}
+        defaultType={defaultChannelType}
       />
       <CreateLobbyModal
         isOpen={activeModal === 'create-lobby'}
@@ -372,6 +384,11 @@ const App: React.FC = () => {
           }
           openModal('create-server')
         }}
+      />
+      <UserProfileModal />
+      <LobbySettingsModal
+        isOpen={activeModal === 'lobby-settings'}
+        onClose={closeModal}
       />
     </div>
   )

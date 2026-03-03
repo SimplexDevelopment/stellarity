@@ -3,7 +3,9 @@ import { useServerStore } from '../../stores/serverStore'
 import { useMessageStore, Message } from '../../stores/messageStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useUIStore } from '../../stores/uiStore'
+import { useVoiceStore } from '../../stores/voiceStore'
 import { instanceManager } from '../../utils/instanceManager'
+import { voiceManager } from '../../utils/voiceManager'
 import { VoiceChannel } from '../VoiceChannel/VoiceChannel'
 import {
   HashIcon,
@@ -15,6 +17,13 @@ import {
   EditIcon,
   TrashIcon,
   DiamondIcon,
+  SignalIcon,
+  WaveformIcon,
+  MicIcon,
+  MicOffIcon,
+  HeadphonesIcon,
+  HeadphonesOffIcon,
+  PhoneOffIcon,
 } from '../Icons'
 import './ChatArea.css'
 
@@ -51,7 +60,8 @@ const MessageItem: React.FC<{
   onDelete: (id: string) => void
   onPin: (id: string) => void
   onUnpin: (id: string) => void
-}> = ({ message, isOwn, isGrouped, onEdit, onDelete, onPin, onUnpin }) => {
+  onClickAuthor?: (userId: string) => void
+}> = ({ message, isOwn, isGrouped, onEdit, onDelete, onPin, onUnpin, onClickAuthor }) => {
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState(message.content)
   const [showActions, setShowActions] = useState(false)
@@ -70,7 +80,7 @@ const MessageItem: React.FC<{
       {isGrouped ? (
         <div className="msg__avatar-spacer" />
       ) : (
-        <div className="msg__avatar avatar">
+        <div className="msg__avatar avatar" onClick={() => onClickAuthor?.(message.userId)} role="button" tabIndex={0}>
           {message.author?.avatarUrl ? (
             <img src={message.author.avatarUrl} alt="" />
           ) : (
@@ -82,7 +92,7 @@ const MessageItem: React.FC<{
       <div className="msg__body">
         {!isGrouped && (
           <div className="msg__header">
-            <span className="msg__author">{message.author?.displayName || message.author?.username || 'Unknown'}</span>
+            <span className="msg__author" onClick={() => onClickAuthor?.(message.userId)} role="button" tabIndex={0}>{message.author?.displayName || message.author?.username || 'Unknown'}</span>
             <span className="msg__time">{formatTime(message.createdAt)}</span>
             {message.editedAt && <span className="msg__edited">(edited)</span>}
           </div>
@@ -132,6 +142,146 @@ const MessageItem: React.FC<{
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── ChatEmptyOrVoice ─────────────────────────────────── */
+/** Shows voice active panel when connected, otherwise the default empty state */
+const ChatEmptyOrVoice: React.FC = () => {
+  const { user } = useAuthStore()
+  const { channels } = useServerStore()
+  const { openProfile } = useUIStore()
+  const {
+    isConnected,
+    currentChannelId: voiceChannelId,
+    channelUsers,
+    selfMute,
+    selfDeaf,
+    isSpeaking,
+    connectionQualities,
+  } = useVoiceStore()
+
+  if (!isConnected || !voiceChannelId) {
+    return (
+      <div className="chat chat--empty">
+        <div className="chat-empty-state">
+          <DiamondIcon size={40} className="chat-empty-state__icon" />
+          <h3>Welcome to Stellarity</h3>
+          <p>Select a channel to begin transmission</p>
+        </div>
+      </div>
+    )
+  }
+
+  const currentChannel = channels.find((c) => c.id === voiceChannelId)
+  const channelName = currentChannel?.name || 'Voice Channel'
+
+  const toggleMute = () => voiceManager.setMuted(!selfMute)
+  const toggleDeaf = () => voiceManager.setDeafened(!selfDeaf)
+  const handleDisconnect = () => voiceManager.leaveChannel()
+
+  return (
+    <div className="chat voice-active">
+      {/* Header */}
+      <div className="voice-active__header">
+        <div className="voice-active__channel">
+          <WaveformIcon size={18} className="voice-active__channel-icon" />
+          <h2 className="voice-active__channel-name">{channelName}</h2>
+        </div>
+        <div className="voice-active__status">
+          <SignalIcon size={14} className="voice-active__signal" />
+          <span className="voice-active__status-label">Voice Connected</span>
+          <span className="voice-active__user-count">{channelUsers.length} {channelUsers.length === 1 ? 'member' : 'members'}</span>
+        </div>
+      </div>
+
+      {/* Member cards grid */}
+      <div className="voice-active__members">
+        {channelUsers.map((u) => {
+          const isLocal = u.userId === user?.id
+          const speaking = isLocal ? isSpeaking : u.speaking
+          const quality = connectionQualities[u.userId]
+
+          return (
+            <div
+              key={u.userId}
+              className={`voice-member ${speaking ? 'voice-member--speaking' : ''} ${isLocal ? 'voice-member--self' : ''}`}
+              onClick={() => openProfile(u.userId)}
+              role="button"
+              tabIndex={0}
+            >
+              {/* Avatar */}
+              <div className="voice-member__avatar">
+                <span>{(u.displayName || u.username)[0].toUpperCase()}</span>
+                {speaking && <div className="voice-member__speak-ring" />}
+              </div>
+
+              {/* Info */}
+              <div className="voice-member__info">
+                <span className="voice-member__name">
+                  {u.displayName || u.username}
+                  {isLocal && <span className="voice-member__you">(You)</span>}
+                </span>
+                <div className="voice-member__state">
+                  {u.selfMute && (
+                    <span className="voice-member__badge voice-member__badge--muted">
+                      <MicOffIcon size={12} /> Muted
+                    </span>
+                  )}
+                  {u.selfDeaf && (
+                    <span className="voice-member__badge voice-member__badge--deaf">
+                      <HeadphonesOffIcon size={12} /> Deafened
+                    </span>
+                  )}
+                  {!u.selfMute && !u.selfDeaf && speaking && (
+                    <span className="voice-member__badge voice-member__badge--speaking">
+                      <SignalIcon size={12} /> Speaking
+                    </span>
+                  )}
+                  {!u.selfMute && !u.selfDeaf && !speaking && (
+                    <span className="voice-member__badge voice-member__badge--idle">
+                      Connected
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Quality indicator */}
+              {quality !== undefined && (
+                <div className={`voice-member__quality voice-member__quality--${quality >= 80 ? 'good' : quality >= 50 ? 'fair' : 'poor'}`}>
+                  <SignalIcon size={12} />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Floating controls */}
+      <div className="voice-active__controls">
+        <button
+          className={`voice__ctrl ${selfMute ? 'voice__ctrl--active' : ''}`}
+          onClick={toggleMute}
+          data-tooltip={selfMute ? 'Unmute' : 'Mute'}
+        >
+          {selfMute ? <MicOffIcon size={18} /> : <MicIcon size={18} />}
+        </button>
+        <button
+          className={`voice__ctrl ${selfDeaf ? 'voice__ctrl--active' : ''}`}
+          onClick={toggleDeaf}
+          data-tooltip={selfDeaf ? 'Undeafen' : 'Deafen'}
+        >
+          {selfDeaf ? <HeadphonesOffIcon size={18} /> : <HeadphonesIcon size={18} />}
+        </button>
+        <button
+          className="voice__ctrl voice__ctrl--disconnect"
+          onClick={handleDisconnect}
+          data-tooltip="Disconnect"
+        >
+          <PhoneOffIcon size={18} />
+        </button>
+      </div>
     </div>
   )
 }
@@ -319,15 +469,7 @@ export const ChatArea: React.FC = () => {
 
   /* ── No channel selected ─────────────────────────── */
   if (!currentChannel) {
-    return (
-      <div className="chat chat--empty">
-        <div className="chat-empty-state">
-          <DiamondIcon size={40} className="chat-empty-state__icon" />
-          <h3>Welcome to Stellarity</h3>
-          <p>Select a channel to begin transmission</p>
-        </div>
-      </div>
-    )
+    return <ChatEmptyOrVoice />
   }
 
   /* ── Voice channel ───────────────────────────────── */
@@ -438,6 +580,7 @@ export const ChatArea: React.FC = () => {
             onDelete={handleDelete}
             onPin={handlePin}
             onUnpin={handleUnpin}
+            onClickAuthor={(userId) => useUIStore.getState().openProfile(userId)}
           />
         ))}
         <div ref={messagesEndRef} />

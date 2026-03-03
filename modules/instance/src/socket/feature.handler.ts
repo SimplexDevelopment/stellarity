@@ -152,7 +152,7 @@ export function registerLobbyHandlers(io: SocketServer, socket: AuthenticatedSoc
       });
 
       io.to(`server:${serverId}`).emit('lobby:created', { channel });
-      io.to(`server:${serverId}`).emit('channel:created', { channel });
+      io.to(`server:${serverId}`).emit('channel:created', channel);
     } catch (error: any) {
       logger.error('Lobby create error:', error);
       socket.emit('error', { message: error.message });

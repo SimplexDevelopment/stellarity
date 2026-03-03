@@ -57,24 +57,37 @@ function setupOriginInterceptor(): void {
     callback({ requestHeaders: details.requestHeaders });
   });
 
-  // Fix CORS response headers so the browser accepts them
+  // Fix CORS response headers so the browser accepts them.
+  // Electron desktop apps don't need CORS protection — we unconditionally
+  // inject permissive CORS headers on ALL external responses so fetch()
+  // calls to instance/central servers never get blocked.
   ses.webRequest.onHeadersReceived((details, callback) => {
-    const headers = details.responseHeaders;
-    if (headers) {
-      // If the server returned an Access-Control-Allow-Origin, ensure it
-      // matches what the browser considers the page origin.
-      const acao = headers['access-control-allow-origin'] || headers['Access-Control-Allow-Origin'];
-      if (acao) {
-        // In dev the page origin is http://localhost:5173, in prod it's app://stellarity.
-        // We replace whatever the server sent with the real page origin so the browser is satisfied.
-        const pageOrigin = is.dev
-          ? (process.env['ELECTRON_RENDERER_URL'] || 'http://localhost:5173').replace(/\/$/, '')
-          : APP_ORIGIN;
-        headers['access-control-allow-origin'] = [pageOrigin];
-        // Remove duplicate casing
-        delete headers['Access-Control-Allow-Origin'];
-      }
+    const headers = details.responseHeaders || {};
+    const url = details.url;
+
+    const isLocalResource =
+      url.startsWith(`${APP_ORIGIN}/`) ||
+      url.startsWith('devtools://') ||
+      url.startsWith('chrome-extension://') ||
+      url.startsWith('data:');
+
+    if (!isLocalResource) {
+      const pageOrigin = is.dev
+        ? (process.env['ELECTRON_RENDERER_URL'] || 'http://localhost:5173').replace(/\/$/, '')
+        : APP_ORIGIN;
+
+      // Always set ACAO to the page origin so Chromium never blocks responses
+      headers['access-control-allow-origin'] = [pageOrigin];
+      headers['access-control-allow-credentials'] = ['true'];
+      headers['access-control-allow-methods'] = ['GET, POST, PUT, PATCH, DELETE, OPTIONS'];
+      headers['access-control-allow-headers'] = ['Content-Type, Authorization'];
+      // Clean up duplicate casings
+      delete headers['Access-Control-Allow-Origin'];
+      delete headers['Access-Control-Allow-Credentials'];
+      delete headers['Access-Control-Allow-Methods'];
+      delete headers['Access-Control-Allow-Headers'];
     }
+
     callback({ responseHeaders: headers });
   });
 }

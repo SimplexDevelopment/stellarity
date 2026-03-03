@@ -6,7 +6,7 @@ import './MemberList.css'
 
 export const MemberList: React.FC = () => {
   const { members, onlineUsers } = useServerStore()
-  const { toggleMemberList } = useUIStore()
+  const { toggleMemberList, openProfile } = useUIStore()
 
   const onlineMembers = members.filter((m) => onlineUsers.has(m.userId))
   const offlineMembers = members.filter((m) => !onlineUsers.has(m.userId))
@@ -27,7 +27,7 @@ export const MemberList: React.FC = () => {
               <span className="category-label__text">ONLINE — {onlineMembers.length}</span>
             </div>
             {onlineMembers.map((m) => (
-              <MemberItem key={m.id} member={m} online />
+              <MemberItem key={m.id} member={m} online onClick={() => openProfile(m.userId)} />
             ))}
           </div>
         )}
@@ -38,7 +38,7 @@ export const MemberList: React.FC = () => {
               <span className="category-label__text">OFFLINE — {offlineMembers.length}</span>
             </div>
             {offlineMembers.map((m) => (
-              <MemberItem key={m.id} member={m} online={false} />
+              <MemberItem key={m.id} member={m} online={false} onClick={() => openProfile(m.userId)} />
             ))}
           </div>
         )}
@@ -60,14 +60,15 @@ interface MemberItemProps {
     }
   }
   online: boolean
+  onClick?: () => void
 }
 
-const MemberItem: React.FC<MemberItemProps> = ({ member, online }) => {
+const MemberItem: React.FC<MemberItemProps> = ({ member, online, onClick }) => {
   const displayName = member.nickname || member.user.displayName || member.user.username
   const initial = displayName[0].toUpperCase()
 
   return (
-    <div className={`member ${online ? '' : 'member--offline'}`}>
+    <div className={`member ${online ? '' : 'member--offline'}`} onClick={onClick} role="button" tabIndex={0}>
       <div className="member__avatar avatar avatar--sm">
         {member.user.avatarUrl ? (
           <img src={member.user.avatarUrl} alt={displayName} />

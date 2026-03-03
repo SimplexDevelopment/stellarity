@@ -1,18 +1,15 @@
 ﻿import React, { useEffect, useState } from 'react'
 import { useVoiceStore } from '../../stores/voiceStore'
-import { useSettingsStore } from '../../stores/settingsStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useServerStore } from '../../stores/serverStore'
+import { useUIStore } from '../../stores/uiStore'
 import { voiceManager } from '../../utils/voiceManager'
 import {
   WaveformIcon,
   MicIcon,
   MicOffIcon,
-  HeadphonesIcon,
   HeadphonesOffIcon,
   PhoneIcon,
-  PhoneOffIcon,
-  SignalIcon,
 } from '../Icons'
 import './VoiceChannel.css'
 
@@ -24,6 +21,7 @@ interface VoiceChannelProps {
 export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelName }) => {
   const { user } = useAuthStore()
   const { currentServerId } = useServerStore()
+  const { openProfile } = useUIStore()
   const {
     isConnected,
     currentChannelId,
@@ -31,8 +29,6 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
     selfMute,
     selfDeaf,
   } = useVoiceStore()
-  const bitrate = useSettingsStore((s) => s.bitrate)
-  const setVoiceSettings = useSettingsStore((s) => s.setVoiceSettings)
 
   const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected')
 
@@ -41,10 +37,6 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
   useEffect(() => {
     setConnectionState(isInThisChannel ? 'connected' : 'disconnected')
   }, [isInThisChannel])
-
-  useEffect(() => {
-    voiceManager.setBitrate(bitrate)
-  }, [bitrate])
 
   const handleJoin = async () => {
     if (!currentServerId) return
@@ -55,19 +47,6 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
       console.error('Failed to join voice:', err)
       setConnectionState('disconnected')
     }
-  }
-
-  const handleLeave = async () => {
-    setConnectionState('disconnected')
-    await voiceManager.leaveChannel()
-  }
-
-  const toggleMute = () => {
-    voiceManager.setMuted(!selfMute)
-  }
-
-  const toggleDeaf = () => {
-    voiceManager.setDeafened(!selfDeaf)
   }
 
   return (
@@ -108,6 +87,9 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
                 <div
                   key={u.userId}
                   className={`voice-card ${u.speaking ? 'voice-card--speaking' : ''} ${u.userId === user?.id ? 'voice-card--self' : ''}`}
+                  onClick={() => openProfile(u.userId)}
+                  role="button"
+                  tabIndex={0}
                 >
                   <div className="voice-card__avatar avatar">
                     <span>{(u.displayName || u.username)[0].toUpperCase()}</span>
@@ -130,31 +112,7 @@ export const VoiceChannel: React.FC<VoiceChannelProps> = ({ channelId, channelNa
               )}
             </div>
 
-            {/* Controls */}
-            <div className="voice__controls panel">
-              <div className="voice__controls-row">
-                <button className={`voice__ctrl ${selfMute ? 'voice__ctrl--active' : ''}`} onClick={toggleMute} data-tooltip={selfMute ? 'Unmute' : 'Mute'}>
-                  {selfMute ? <MicOffIcon size={20} /> : <MicIcon size={20} />}
-                  <span>{selfMute ? 'Unmute' : 'Mute'}</span>
-                </button>
-                <button className={`voice__ctrl ${selfDeaf ? 'voice__ctrl--active' : ''}`} onClick={toggleDeaf} data-tooltip={selfDeaf ? 'Undeafen' : 'Deafen'}>
-                  {selfDeaf ? <HeadphonesOffIcon size={20} /> : <HeadphonesIcon size={20} />}
-                  <span>{selfDeaf ? 'Undeafen' : 'Deafen'}</span>
-                </button>
-                <button className="voice__ctrl voice__ctrl--disconnect" onClick={handleLeave} data-tooltip="Disconnect">
-                  <PhoneOffIcon size={20} />
-                  <span>Leave</span>
-                </button>
-              </div>
 
-              <div className="voice__bitrate">
-                <label>
-                  <span>Bitrate: {bitrate}kbps</span>
-                  <input type="range" min="128" max="512" step="32" value={bitrate}
-                    onChange={(e) => setVoiceSettings({ bitrate: parseInt(e.target.value) })} />
-                </label>
-              </div>
-            </div>
           </>
         )}
       </div>

@@ -130,6 +130,15 @@ export const createLobbySchema = z.object({
   password: z.string().min(1).max(64).optional(),
 });
 
+// Update lobby settings schema
+export const updateLobbySchema = z.object({
+  name: z.string().min(1).max(64).optional(),
+  bitrate: z.number().min(8000).max(512000).optional(),
+  userLimit: z.number().min(0).max(99).optional(),
+  password: z.string().min(1).max(64).optional(),
+  removePassword: z.boolean().optional(),
+});
+
 // Server features schema
 export const serverFeaturesSchema = z.object({
   buildALobbyEnabled: z.boolean().optional(),
@@ -145,4 +154,5 @@ export type CreateServerInput = z.infer<typeof createServerSchema>;
 export type CreateChannelInput = z.infer<typeof createChannelSchema>;
 export type MessageInput = z.infer<typeof messageSchema>;
 export type CreateLobbyInput = z.infer<typeof createLobbySchema>;
+export type UpdateLobbyInput = z.infer<typeof updateLobbySchema>;
 export type ServerFeaturesInput = z.infer<typeof serverFeaturesSchema>;

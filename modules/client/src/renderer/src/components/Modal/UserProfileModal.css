@@ -1,0 +1,240 @@
+/* ── User Profile Modal ──────────────────────────────── */
+.profile-modal {
+  width: 100%;
+  max-width: 360px;
+  box-shadow: var(--shadow-elevated);
+  animation: scaleIn 0.2s ease;
+  overflow: hidden;
+}
+
+/* ── Banner ──────────────────────────────────────────── */
+.profile-modal__banner {
+  position: relative;
+  height: 80px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--accent-primary-rgb, 0, 212, 255), 0.3),
+    rgba(var(--accent-primary-rgb, 0, 212, 255), 0.05) 60%,
+    transparent
+  );
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.profile-modal__close {
+  position: absolute;
+  top: var(--spacing-xs);
+  right: var(--spacing-xs);
+  z-index: 1;
+}
+
+/* ── Avatar ──────────────────────────────────────────── */
+.profile-modal__avatar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -36px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.profile-modal__avatar {
+  width: 72px;
+  height: 72px;
+  font-size: 28px;
+  font-weight: 700;
+  border: 3px solid var(--panel-bg);
+  box-shadow: 0 0 0 2px var(--panel-border);
+}
+
+.profile-modal__avatar--offline {
+  filter: saturate(0.4) brightness(0.7);
+}
+
+.profile-modal__status-dot {
+  position: absolute;
+  bottom: 2px;
+  right: calc(50% - 40px);
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  border: 3px solid var(--panel-bg);
+  background: var(--text-muted);
+}
+
+.profile-modal__status-dot--online {
+  background: var(--status-online);
+  box-shadow: 0 0 6px var(--status-online);
+}
+
+.profile-modal__status-dot--offline {
+  background: var(--text-muted);
+}
+
+/* ── Identity ────────────────────────────────────────── */
+.profile-modal__identity {
+  text-align: center;
+  padding: 0 var(--spacing-md);
+}
+
+.profile-modal__name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.profile-modal__display-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.profile-modal__badge--owner {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4));
+}
+
+.profile-modal__username {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+}
+
+.profile-modal__status-message {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ── Divider ─────────────────────────────────────────── */
+.profile-modal__divider {
+  height: 1px;
+  background: var(--panel-border);
+  margin: var(--spacing-sm) var(--spacing-md);
+}
+
+/* ── Sections ────────────────────────────────────────── */
+.profile-modal__sections {
+  padding: 0 var(--spacing-md) var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.profile-modal__section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-modal__section-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.profile-modal__section-value {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ── Status row ──────────────────────────────────────── */
+.profile-modal__status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-modal__status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-xs);
+  background: var(--text-muted);
+}
+
+.profile-modal__status-indicator--online {
+  background: var(--status-online);
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.4);
+}
+
+.profile-modal__status-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ── Voice row ───────────────────────────────────────── */
+.profile-modal__voice-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-modal__voice-icon {
+  color: var(--status-online);
+}
+
+.profile-modal__voice-channel {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.profile-modal__voice-muted,
+.profile-modal__voice-deaf {
+  color: var(--status-danger);
+  opacity: 0.8;
+}
+
+/* ── Roles ───────────────────────────────────────────── */
+.profile-modal__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.profile-modal__role {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.profile-modal__role-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Subscription badge ──────────────────────────────── */
+.profile-modal__sub-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(var(--accent-primary-rgb, 0, 212, 255), 0.1);
+  border: 1px solid rgba(var(--accent-primary-rgb, 0, 212, 255), 0.2);
+  color: var(--accent-primary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}

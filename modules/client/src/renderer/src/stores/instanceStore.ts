@@ -29,6 +29,9 @@ interface InstanceState {
 
   /** Online/offline status per instance */
   onlineStatus: Record<string, InstanceOnlineStatus>;
+
+  /** Instance capabilities (populated on connect) */
+  instanceCapabilities: Record<string, { maxBitrate: number }>;
   
   // Actions
   saveInstance: (instance: SavedInstance) => void;
@@ -36,6 +39,7 @@ interface InstanceState {
   setConnected: (instanceId: string, connected: boolean) => void;
   setActiveInstance: (instanceId: string | null) => void;
   setOnlineStatus: (instanceId: string, status: InstanceOnlineStatus) => void;
+  setInstanceCapabilities: (instanceId: string, caps: { maxBitrate: number }) => void;
   isInstanceOnline: (instanceId: string) => boolean;
   reset: () => void;
 }
@@ -47,6 +51,7 @@ export const useInstanceStore = create<InstanceState>()(
       connectedInstanceIds: [],
       activeInstanceId: null,
       onlineStatus: {},
+      instanceCapabilities: {},
 
       saveInstance: (instance) => set((state) => ({
         savedInstances: [
@@ -77,6 +82,10 @@ export const useInstanceStore = create<InstanceState>()(
         onlineStatus: { ...state.onlineStatus, [instanceId]: status },
       })),
 
+      setInstanceCapabilities: (instanceId, caps) => set((state) => ({
+        instanceCapabilities: { ...state.instanceCapabilities, [instanceId]: caps },
+      })),
+
       isInstanceOnline: (instanceId) => {
         return get().onlineStatus[instanceId] === 'online';
       },
@@ -85,6 +94,7 @@ export const useInstanceStore = create<InstanceState>()(
         connectedInstanceIds: [],
         activeInstanceId: null,
         onlineStatus: {},
+        instanceCapabilities: {},
       }),
     }),
     {

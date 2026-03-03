@@ -346,6 +346,7 @@
   height: 36px;
   flex-shrink: 0;
   border-radius: var(--radius-sm);
+  cursor: pointer;
 }
 
 .msg__avatar img {
@@ -371,6 +372,12 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.msg__author:hover {
+  color: var(--accent-primary);
 }
 
 .msg__time {
@@ -519,4 +526,304 @@
 
 .chat__input-send {
   color: var(--accent-primary);
+}
+
+/* ── Voice Active Panel ──────────────────────────────── */
+.voice-active {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  font-family: var(--font-mono);
+  position: relative;
+}
+
+/* ── Voice Active Header ─────────────────────────────── */
+.voice-active__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 42px;
+  padding: 0 var(--spacing-md);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
+}
+
+.voice-active__channel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.voice-active__channel-icon {
+  color: var(--status-online);
+  filter: drop-shadow(0 0 4px var(--status-online));
+}
+
+.voice-active__channel-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.voice-active__status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.voice-active__signal {
+  color: var(--status-online);
+  filter: drop-shadow(0 0 4px var(--status-online));
+}
+
+.voice-active__status-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--status-online);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.voice-active__user-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: var(--spacing-xs);
+  padding-left: var(--spacing-sm);
+  border-left: 1px solid var(--panel-border);
+}
+
+/* ── Members Grid ────────────────────────────────────── */
+.voice-active__members {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  overflow-y: auto;
+  align-content: start;
+}
+
+/* ── Voice Member Card ───────────────────────────────── */
+.voice-member {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast),
+              background var(--transition-fast),
+              box-shadow var(--transition-fast),
+              transform var(--transition-fast);
+}
+
+.voice-member:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.voice-member--speaking {
+  border-color: var(--status-online);
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.12),
+              inset 0 0 12px rgba(0, 255, 136, 0.03);
+}
+
+.voice-member--self {
+  background: rgba(var(--accent-primary-rgb, 0, 212, 255), 0.03);
+  border-color: rgba(var(--accent-primary-rgb, 0, 212, 255), 0.15);
+}
+
+/* ── Member Avatar ───────────────────────────────────── */
+.voice-member__avatar {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.voice-member--speaking .voice-member__avatar {
+  color: var(--status-online);
+}
+
+.voice-member__speak-ring {
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--status-online);
+  border-radius: calc(var(--radius-md) + 3px);
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.4),
+              inset 0 0 6px rgba(0, 255, 136, 0.1);
+  animation: voice-member-pulse 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ── Member Info ─────────────────────────────────────── */
+.voice-member__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.voice-member__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: text-shadow var(--transition-fast);
+}
+
+.voice-member--speaking .voice-member__name {
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.voice-member__you {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: var(--spacing-xs);
+}
+
+.voice-member__state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.voice-member__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.voice-member__badge--muted {
+  color: var(--status-danger);
+  background: rgba(255, 59, 92, 0.1);
+}
+
+.voice-member__badge--deaf {
+  color: var(--status-danger);
+  background: rgba(255, 59, 92, 0.1);
+}
+
+.voice-member__badge--speaking {
+  color: var(--status-online);
+  background: rgba(0, 255, 136, 0.08);
+}
+
+.voice-member__badge--idle {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ── Quality Indicator ───────────────────────────────── */
+.voice-member__quality {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.voice-member__quality--good { color: var(--status-online); }
+.voice-member__quality--fair { color: var(--status-warning); }
+.voice-member__quality--poor { color: var(--status-danger); }
+
+/* ── Voice Active Controls (floating overlay) ────────── */
+.voice-active__controls {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(var(--panel-bg-deep-rgb, 10, 12, 16), 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg, 12px);
+  z-index: 10;
+}
+
+.voice__ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast),
+              color var(--transition-fast),
+              box-shadow var(--transition-fast);
+}
+
+.voice__ctrl:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-primary);
+}
+
+.voice__ctrl--active {
+  color: var(--status-danger);
+  border-color: rgba(255, 59, 92, 0.3);
+  background: rgba(255, 59, 92, 0.1);
+}
+
+.voice__ctrl--active:hover {
+  background: rgba(255, 59, 92, 0.18);
+  border-color: rgba(255, 59, 92, 0.45);
+}
+
+.voice__ctrl--disconnect {
+  color: var(--status-danger);
+  border-color: rgba(255, 59, 92, 0.25);
+  background: rgba(255, 59, 92, 0.08);
+}
+
+.voice__ctrl--disconnect:hover {
+  background: rgba(255, 59, 92, 0.2);
+  border-color: rgba(255, 59, 92, 0.5);
+  box-shadow: 0 0 12px rgba(255, 59, 92, 0.15);
+}
+
+/* ── Speaking Pulse Animation ────────────────────────── */
+@keyframes voice-member-pulse {
+  0%, 100% {
+    opacity: 0.7;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.35),
+                inset 0 0 4px rgba(0, 255, 136, 0.1);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 14px rgba(0, 255, 136, 0.5),
+                inset 0 0 8px rgba(0, 255, 136, 0.15);
+  }
 }
