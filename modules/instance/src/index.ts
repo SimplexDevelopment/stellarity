@@ -70,6 +70,9 @@ async function startInstanceServer() {
   // Create Express app
   const app = express();
   const httpServer = http.createServer(app);
+
+  // Trust reverse proxy (Nginx) — required for correct IP resolution and rate limiting
+  app.set('trust proxy', 1);
   
   // Security middleware
   app.use(helmet({

@@ -33,6 +33,9 @@ import adminRoutes from './routes/admin/index.js';
 const app = express();
 const server = http.createServer(app);
 
+// Trust reverse proxy (Nginx) — required for correct IP resolution and rate limiting
+app.set('trust proxy', 1);
+
 // ── Middleware ────────────────────────────────────────────────────────
 
 app.use(helmet({

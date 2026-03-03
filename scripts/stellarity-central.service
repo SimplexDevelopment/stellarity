@@ -5,9 +5,9 @@ Requires=postgresql.service
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/opt/stellarity/modules/central
-ExecStart=/root/.bun/bin/bun run src/index.ts
+User=stellarity
+WorkingDirectory=/home/stellarity/stellarity/modules/central
+ExecStart=/home/stellarity/.bun/bin/bun run src/index.ts
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production

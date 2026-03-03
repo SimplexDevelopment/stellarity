@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/opt/stellarity/modules/instance
-ExecStart=/root/.bun/bin/bun run src/index.ts
+User=stellarity
+WorkingDirectory=/home/stellarity/stellarity/modules/instance
+ExecStart=/home/stellarity/.bun/bin/bun run src/index.ts
 Restart=always
 RestartSec=5
 Environment=NODE_ENV=production

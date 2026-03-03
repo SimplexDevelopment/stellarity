@@ -1,8 +1,83 @@
-import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron';
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  nativeTheme,
+  protocol,
+  net,
+  session,
+} from 'electron';
 import { join } from 'path';
+import { pathToFileURL } from 'url';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 
+const SCHEME = 'app';
+const HOST = 'stellarity';
+const APP_ORIGIN = `${SCHEME}://${HOST}`;
+
+// Register the custom scheme before app is ready — must be at top level
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: SCHEME,
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true,
+    },
+  },
+]);
+
 let mainWindow: BrowserWindow | null = null;
+
+/**
+ * Configure session-level request interception so that every
+ * outgoing API request carries `Origin: app://stellarity` and
+ * every response has the matching CORS header. This ensures a
+ * consistent origin in both dev (Vite) and production (custom protocol).
+ */
+function setupOriginInterceptor(): void {
+  const ses = session.defaultSession;
+
+  // Rewrite the Origin header on every outgoing request to external APIs
+  ses.webRequest.onBeforeSendHeaders((details, callback) => {
+    const url = details.url;
+    // Only rewrite for non-local URLs (actual API calls)
+    const isLocalResource =
+      url.startsWith(`${APP_ORIGIN}/`) ||
+      url.startsWith('devtools://') ||
+      url.startsWith('chrome-extension://');
+
+    if (!isLocalResource) {
+      details.requestHeaders['Origin'] = APP_ORIGIN;
+    }
+
+    callback({ requestHeaders: details.requestHeaders });
+  });
+
+  // Fix CORS response headers so the browser accepts them
+  ses.webRequest.onHeadersReceived((details, callback) => {
+    const headers = details.responseHeaders;
+    if (headers) {
+      // If the server returned an Access-Control-Allow-Origin, ensure it
+      // matches what the browser considers the page origin.
+      const acao = headers['access-control-allow-origin'] || headers['Access-Control-Allow-Origin'];
+      if (acao) {
+        // In dev the page origin is http://localhost:5173, in prod it's app://stellarity.
+        // We replace whatever the server sent with the real page origin so the browser is satisfied.
+        const pageOrigin = is.dev
+          ? (process.env['ELECTRON_RENDERER_URL'] || 'http://localhost:5173').replace(/\/$/, '')
+          : APP_ORIGIN;
+        headers['access-control-allow-origin'] = [pageOrigin];
+        // Remove duplicate casing
+        delete headers['Access-Control-Allow-Origin'];
+      }
+    }
+    callback({ responseHeaders: headers });
+  });
+}
 
 function createWindow(): void {
   // Create the browser window with FTL-style dark theme
@@ -40,7 +115,8 @@ function createWindow(): void {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL']);
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+    // Use custom app://stellarity protocol for a real origin in production
+    mainWindow.loadURL(`${APP_ORIGIN}/index.html`);
   }
 
   // Open DevTools in development
@@ -53,6 +129,19 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.stellarity.app');
+
+  // Register custom app:// protocol to serve local files in production
+  if (!is.dev) {
+    protocol.handle(SCHEME, (request) => {
+      // Strip the scheme+host: app://stellarity/path → ../renderer/path
+      const url = new URL(request.url);
+      const filePath = join(__dirname, '../renderer', decodeURIComponent(url.pathname));
+      return net.fetch(pathToFileURL(filePath).href);
+    });
+  }
+
+  // Intercept Origin/CORS headers for consistent app://stellarity origin
+  setupOriginInterceptor();
 
   // Watch for shortcuts in development
   app.on('browser-window-created', (_, window) => {
