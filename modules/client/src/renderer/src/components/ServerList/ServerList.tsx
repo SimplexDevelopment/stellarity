@@ -49,11 +49,16 @@ interface ServerListProps {
 
 export const ServerList: React.FC<ServerListProps> = ({ onAddServer }) => {
   const { servers, currentServerId, setCurrentServer } = useServerStore();
-  const { connectedInstanceIds } = useInstanceStore();
+  const { connectedInstanceIds, activeInstanceId } = useInstanceStore();
   const { viewMode, setViewMode, openModal } = useUIStore();
   const { user } = useAuthStore();
 
   const connectedCount = connectedInstanceIds.length;
+
+  // Filter servers to only show those from the active instance
+  const visibleServers = activeInstanceId
+    ? servers.filter((s) => s.instanceId === activeInstanceId)
+    : servers;
 
   const handleServerClick = (serverId: string) => {
     // Only call setCurrentServer when switching to a different server —
@@ -87,7 +92,7 @@ export const ServerList: React.FC<ServerListProps> = ({ onAddServer }) => {
 
       {/* Server icons — scrollable */}
       <div className="server-list-scroll">
-        {servers.map((server) => (
+        {visibleServers.map((server) => (
           <ServerIcon
             key={server.id}
             server={server}

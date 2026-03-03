@@ -73,10 +73,10 @@ class VoiceService {
     
     // Update voice state in database
     query(
-      `INSERT INTO voice_states (id, user_id, channel_id, server_id, joined_at)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO voice_states (id, user_id, channel_id, server_id, self_mute, self_deaf, joined_at)
+       VALUES ($1, $2, $3, $4, 0, 0, $5)
        ON CONFLICT (user_id) DO UPDATE
-       SET channel_id = excluded.channel_id, server_id = excluded.server_id, joined_at = $5`,
+       SET channel_id = excluded.channel_id, server_id = excluded.server_id, joined_at = excluded.joined_at`,
       [crypto.randomUUID(), userId, channelId, serverId, now()]
     );
     
