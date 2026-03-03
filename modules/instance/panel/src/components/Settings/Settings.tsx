@@ -416,18 +416,25 @@ const ServerCreators: React.FC = () => {
   );
 };
 
-/** Server Features sub-component — manage server feature flags */
+/** Server feature config for a single server */
+interface ServerFeatureEntry {
+  serverId: string;
+  serverName: string | null;
+  buildALobbyEnabled: boolean;
+  buildALobbyPosition: number;
+  autoOverflowEnabled: boolean;
+  updatedAt: string;
+}
+
+/** Server Features sub-component — manage per-server feature toggles */
 const ServerFeatures: React.FC = () => {
-  const [features, setFeatures] = useState<
-    Array<{ id: string; serverId: string; serverName: string | null; feature: string; enabled: boolean; createdAt: string }>
-  >([]);
+  const [features, setFeatures] = useState<ServerFeatureEntry[]>([]);
   const [servers, setServers] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newServerId, setNewServerId] = useState('');
-  const [newFeature, setNewFeature] = useState('');
-  const [newEnabled, setNewEnabled] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
@@ -446,28 +453,47 @@ const ServerFeatures: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleAdd = async () => {
-    if (!newServerId || !newFeature) return;
+  const handleToggle = async (serverId: string, field: string, value: boolean | number) => {
+    setSaving(serverId);
     try {
-      await panelApi.settings.addServerFeature(newServerId, newFeature, newEnabled);
-      setMessage({ type: 'success', text: 'Feature flag added' });
+      await panelApi.settings.updateServerFeatures(serverId, { [field]: value });
+      setMessage({ type: 'success', text: 'Feature updated' });
+      fetchData();
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  /** Configure features for a server that doesn't have config yet */
+  const handleAddServer = async () => {
+    if (!newServerId) return;
+    setSaving(newServerId);
+    try {
+      // Create default features entry via an update (backend upserts)
+      await panelApi.settings.updateServerFeatures(newServerId, { buildALobbyEnabled: true });
+      setMessage({ type: 'success', text: 'Server features configured' });
       setNewServerId('');
-      setNewFeature('');
-      setNewEnabled(true);
       setShowAdd(false);
       fetchData();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
+    } finally {
+      setSaving(null);
     }
   };
 
-  const handleRemove = async (id: string) => {
+  const handleReset = async (serverId: string) => {
+    setSaving(serverId);
     try {
-      await panelApi.settings.removeServerFeature(id);
-      setMessage({ type: 'success', text: 'Feature flag removed' });
+      await panelApi.settings.resetServerFeatures(serverId);
+      setMessage({ type: 'success', text: 'Server features reset to defaults' });
       fetchData();
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message });
+    } finally {
+      setSaving(null);
     }
   };
 
@@ -475,17 +501,23 @@ const ServerFeatures: React.FC = () => {
     return <div className="loading-state"><span className="spinner" /> LOADING</div>;
   }
 
+  // Servers that don't have a features row yet
+  const configuredServerIds = new Set(features.map(f => f.serverId));
+  const unconfiguredServers = servers.filter(s => !configuredServerIds.has(s.id));
+
   return (
     <div className="panel">
       <div className="panel-header settings__panel-header">
-        Server Feature Flags
-        <button type="button" className="btn btn--ghost btn--small" onClick={() => setShowAdd(!showAdd)}>
-          {showAdd ? '✕ CANCEL' : '+ ADD FLAG'}
-        </button>
+        Server Features
+        {unconfiguredServers.length > 0 && (
+          <button type="button" className="btn btn--ghost btn--small" onClick={() => setShowAdd(!showAdd)}>
+            {showAdd ? '✕ CANCEL' : '+ CONFIGURE SERVER'}
+          </button>
+        )}
       </div>
       <div className="settings__body">
         <p className="settings__hint">
-          Feature flags enable or disable specific capabilities per server (e.g. voice, screen-share, threads).
+          Configure per-server feature toggles such as Build-a-Lobby and Auto Overflow channels.
         </p>
 
         {showAdd && (
@@ -494,41 +526,21 @@ const ServerFeatures: React.FC = () => {
               <label className="settings__label">Server</label>
               <select value={newServerId} onChange={e => setNewServerId(e.target.value)}>
                 <option value="">Select a server…</option>
-                {servers.map(s => (
+                {unconfiguredServers.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
             </div>
-            <div className="settings__field">
-              <label className="settings__label">Feature Key</label>
-              <input
-                type="text"
-                value={newFeature}
-                onChange={e => setNewFeature(e.target.value)}
-                placeholder="e.g. voice, threads, screen_share"
-              />
-            </div>
-            <div className="settings__field settings__toggle-field">
-              <label className="settings__label">Enabled</label>
-              <button
-                type="button"
-                className={`settings__toggle ${newEnabled ? 'settings__toggle--on' : ''}`}
-                onClick={() => setNewEnabled(!newEnabled)}
-              >
-                <span className="settings__toggle-knob" />
-                <span className="settings__toggle-label">{newEnabled ? 'ON' : 'OFF'}</span>
-              </button>
-            </div>
             <div className="settings__actions">
-              <button type="button" className="btn btn--primary btn--small" onClick={handleAdd} disabled={!newServerId || !newFeature}>
-                ADD FEATURE
+              <button type="button" className="btn btn--primary btn--small" onClick={handleAddServer} disabled={!newServerId || saving !== null}>
+                CONFIGURE
               </button>
             </div>
           </div>
         )}
 
         {features.length === 0 && !showAdd && (
-          <div className="settings__hint">No feature flags configured.</div>
+          <div className="settings__hint">No servers have custom feature configuration. Default settings apply.</div>
         )}
 
         {features.length > 0 && (
@@ -536,20 +548,51 @@ const ServerFeatures: React.FC = () => {
             <thead>
               <tr>
                 <th>Server</th>
-                <th>Feature</th>
-                <th>Enabled</th>
+                <th>Build-a-Lobby</th>
+                <th>Lobby Position</th>
+                <th>Auto Overflow</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {features.map(f => (
-                <tr key={f.id}>
+                <tr key={f.serverId}>
                   <td>{f.serverName || f.serverId}</td>
-                  <td><code>{f.feature}</code></td>
-                  <td><span className={`badge badge--${f.enabled ? 'success' : 'muted'}`}>{f.enabled ? 'ON' : 'OFF'}</span></td>
                   <td>
-                    <button type="button" className="btn btn--danger btn--small" onClick={() => handleRemove(f.id)}>
-                      DELETE
+                    <button
+                      type="button"
+                      className={`settings__toggle ${f.buildALobbyEnabled ? 'settings__toggle--on' : ''}`}
+                      onClick={() => handleToggle(f.serverId, 'buildALobbyEnabled', !f.buildALobbyEnabled)}
+                      disabled={saving === f.serverId}
+                    >
+                      <span className="settings__toggle-knob" />
+                      <span className="settings__toggle-label">{f.buildALobbyEnabled ? 'ON' : 'OFF'}</span>
+                    </button>
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      value={f.buildALobbyPosition}
+                      onChange={e => handleToggle(f.serverId, 'buildALobbyPosition', parseInt(e.target.value, 10) || 0)}
+                      disabled={saving === f.serverId}
+                      style={{ width: '60px' }}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className={`settings__toggle ${f.autoOverflowEnabled ? 'settings__toggle--on' : ''}`}
+                      onClick={() => handleToggle(f.serverId, 'autoOverflowEnabled', !f.autoOverflowEnabled)}
+                      disabled={saving === f.serverId}
+                    >
+                      <span className="settings__toggle-knob" />
+                      <span className="settings__toggle-label">{f.autoOverflowEnabled ? 'ON' : 'OFF'}</span>
+                    </button>
+                  </td>
+                  <td>
+                    <button type="button" className="btn btn--danger btn--small" onClick={() => handleReset(f.serverId)} disabled={saving === f.serverId}>
+                      RESET
                     </button>
                   </td>
                 </tr>

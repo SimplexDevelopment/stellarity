@@ -116,19 +116,24 @@ class PanelApiClient {
     getServerFeatures: () =>
       this.request<{
         features: Array<{
-          id: string; serverId: string; serverName: string | null;
-          feature: string; enabled: boolean; createdAt: string;
+          serverId: string; serverName: string | null;
+          buildALobbyEnabled: boolean; buildALobbyPosition: number;
+          autoOverflowEnabled: boolean; updatedAt: string;
         }>;
       }>('/panel/api/settings/server-features'),
 
-    addServerFeature: (serverId: string, feature: string, enabled?: boolean) =>
-      this.request<{ success: boolean; id: string }>('/panel/api/settings/server-features', {
-        method: 'POST',
-        body: JSON.stringify({ serverId, feature, enabled }),
+    updateServerFeatures: (serverId: string, data: {
+      buildALobbyEnabled?: boolean;
+      buildALobbyPosition?: number;
+      autoOverflowEnabled?: boolean;
+    }) =>
+      this.request<{ success: boolean }>(`/panel/api/settings/server-features/${serverId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
       }),
 
-    removeServerFeature: (id: string) =>
-      this.request<{ success: boolean }>(`/panel/api/settings/server-features/${id}`, {
+    resetServerFeatures: (serverId: string) =>
+      this.request<{ success: boolean }>(`/panel/api/settings/server-features/${serverId}`, {
         method: 'DELETE',
       }),
 

@@ -23,8 +23,10 @@ router.get('/', (req: PanelRequest, res: Response) => {
     const params: any[] = [];
 
     if (search) {
-      conditions.push(`(im.username LIKE $${params.length + 1} OR im.display_name LIKE $${params.length + 1} OR im.user_id LIKE $${params.length + 1})`);
-      params.push(`%${search}%`);
+      const p = params.length + 1;
+      conditions.push(`(im.username LIKE $${p} OR im.display_name LIKE $${p + 1} OR im.user_id LIKE $${p + 2})`);
+      const searchParam = `%${search}%`;
+      params.push(searchParam, searchParam, searchParam);
     }
 
     if (filter === 'banned') {

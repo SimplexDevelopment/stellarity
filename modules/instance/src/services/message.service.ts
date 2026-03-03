@@ -116,12 +116,13 @@ class MessageService {
           SELECT id, channel_id, user_id, content, encrypted,
                  attachments, embeds, reply_to_id, edited_at, created_at
           FROM messages
-          WHERE channel_id = $1 AND created_at > (SELECT created_at FROM messages WHERE id = $2)
+          WHERE channel_id = $4 AND created_at > (SELECT created_at FROM messages WHERE id = $5)
           ORDER BY created_at ASC
-          LIMIT $3
+          LIMIT $6
         )
         ORDER BY created_at ASC`;
-      params = [channelId, around, Math.ceil(safeLimit / 2)];
+      const halfLimit = Math.ceil(safeLimit / 2);
+      params = [channelId, around, halfLimit, channelId, around, halfLimit];
     } else if (before) {
       sql = `
         SELECT id, channel_id, user_id, content, encrypted,

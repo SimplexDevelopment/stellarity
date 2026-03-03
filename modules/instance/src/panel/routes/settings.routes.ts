@@ -21,11 +21,12 @@ function getSetting(key: string, defaultValue: string | null): string | null {
 
 /** Upsert a setting */
 function setSetting(key: string, value: string): void {
+  const timestamp = now();
   query(
     `INSERT INTO instance_settings (key, value, updated_at)
      VALUES ($1, $2, $3)
-     ON CONFLICT(key) DO UPDATE SET value = $2, updated_at = $3`,
-    [key, value, now()]
+     ON CONFLICT(key) DO UPDATE SET value = $4, updated_at = $5`,
+    [key, value, timestamp, value, timestamp]
   );
 }
 
@@ -148,9 +149,9 @@ router.put('/', (req: PanelRequest, res: Response) => {
 router.get('/server-creators', (req: PanelRequest, res: Response) => {
   try {
     const result = query(
-      `SELECT sc.user_id, u.username, u.display_name, sc.added_at
+      `SELECT sc.user_id, im.username, im.display_name, sc.added_at
        FROM server_creators sc
-       LEFT JOIN users u ON u.id = sc.user_id
+       LEFT JOIN instance_members im ON im.user_id = sc.user_id
        ORDER BY sc.added_at DESC`
     );
     res.json({ creators: result.rows });
@@ -168,10 +169,10 @@ router.post('/server-creators', (req: PanelRequest, res: Response) => {
       res.status(400).json({ error: 'userId is required' });
       return;
     }
-    // Verify user exists
-    const user = query('SELECT id, username FROM users WHERE id = $1', [userId]);
+    // Verify user exists on this instance
+    const user = query('SELECT user_id, username FROM instance_members WHERE user_id = $1', [userId]);
     if (user.rows.length === 0) {
-      res.status(404).json({ error: 'User not found' });
+      res.status(404).json({ error: 'User not found on this instance' });
       return;
     }
     query(
@@ -211,23 +212,23 @@ router.delete('/server-creators/:userId', (req: PanelRequest, res: Response) => 
 
 // ── Server Features Management ──────────────────────────────────
 
-/** GET /panel/api/settings/server-features — list all server feature flags */
+/** GET /panel/api/settings/server-features — list all server feature settings */
 router.get('/server-features', (req: PanelRequest, res: Response) => {
   try {
     const result = query(
       `SELECT sf.*, s.name as server_name
        FROM server_features sf
        LEFT JOIN servers s ON s.id = sf.server_id
-       ORDER BY sf.server_id, sf.feature`
+       ORDER BY sf.server_id`
     );
     res.json({
       features: result.rows.map(r => ({
-        id: r.id,
         serverId: r.server_id,
         serverName: r.server_name,
-        feature: r.feature,
-        enabled: !!r.enabled,
-        createdAt: r.created_at,
+        buildALobbyEnabled: r.build_a_lobby_enabled === 1,
+        buildALobbyPosition: r.build_a_lobby_position ?? 0,
+        autoOverflowEnabled: r.auto_overflow_enabled === 1,
+        updatedAt: r.updated_at,
       })),
     });
   } catch (error) {
@@ -236,15 +237,11 @@ router.get('/server-features', (req: PanelRequest, res: Response) => {
   }
 });
 
-/** POST /panel/api/settings/server-features — add a feature flag */
-router.post('/server-features', (req: PanelRequest, res: Response) => {
+/** PUT /panel/api/settings/server-features/:serverId — update feature settings for a server */
+router.put('/server-features/:serverId', (req: PanelRequest, res: Response) => {
   try {
-    const { serverId, feature, enabled } = req.body;
-
-    if (!serverId || !feature) {
-      res.status(400).json({ error: 'serverId and feature are required' });
-      return;
-    }
+    const { serverId } = req.params;
+    const { buildALobbyEnabled, buildALobbyPosition, autoOverflowEnabled } = req.body;
 
     const serverCheck = query('SELECT id FROM servers WHERE id = $1', [serverId]);
     if (serverCheck.rows.length === 0) {
@@ -252,51 +249,85 @@ router.post('/server-features', (req: PanelRequest, res: Response) => {
       return;
     }
 
-    const id = generateId();
-    query(
-      `INSERT INTO server_features (id, server_id, feature, enabled, created_at)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [id, serverId, feature, enabled !== false ? 1 : 0, now()]
-    );
-
-    query(
-      `INSERT INTO audit_logs (id, user_id, action, target_type, target_id, details, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [generateId(), 'panel-admin', 'panel.server-feature.add', 'server', serverId,
-        JSON.stringify({ feature, enabled: enabled !== false }), now()]
-    );
-
-    res.json({ success: true, id });
-  } catch (error) {
-    logger.error('Failed to add server feature:', error);
-    res.status(500).json({ error: 'Failed to add server feature' });
-  }
-});
-
-/** DELETE /panel/api/settings/server-features/:id — remove a feature flag */
-router.delete('/server-features/:id', (req: PanelRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    const existing = query('SELECT * FROM server_features WHERE id = $1', [id]);
+    // Upsert: insert row if it doesn't exist, then update
+    const existing = query('SELECT server_id FROM server_features WHERE server_id = $1', [serverId]);
     if (existing.rows.length === 0) {
-      res.status(404).json({ error: 'Feature flag not found' });
+      query('INSERT INTO server_features (server_id) VALUES ($1)', [serverId]);
+    }
+
+    const setClauses: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+    const changes: Record<string, any> = {};
+
+    if (buildALobbyEnabled !== undefined) {
+      setClauses.push(`build_a_lobby_enabled = $${idx++}`);
+      params.push(buildALobbyEnabled ? 1 : 0);
+      changes.buildALobbyEnabled = buildALobbyEnabled;
+    }
+    if (buildALobbyPosition !== undefined) {
+      setClauses.push(`build_a_lobby_position = $${idx++}`);
+      params.push(buildALobbyPosition);
+      changes.buildALobbyPosition = buildALobbyPosition;
+    }
+    if (autoOverflowEnabled !== undefined) {
+      setClauses.push(`auto_overflow_enabled = $${idx++}`);
+      params.push(autoOverflowEnabled ? 1 : 0);
+      changes.autoOverflowEnabled = autoOverflowEnabled;
+    }
+
+    if (setClauses.length === 0) {
+      res.status(400).json({ error: 'No valid fields to update' });
       return;
     }
 
-    query('DELETE FROM server_features WHERE id = $1', [id]);
+    setClauses.push(`updated_at = $${idx++}`);
+    params.push(now());
+    params.push(serverId);
+
+    query(
+      `UPDATE server_features SET ${setClauses.join(', ')} WHERE server_id = $${idx}`,
+      params
+    );
 
     query(
       `INSERT INTO audit_logs (id, user_id, action, target_type, target_id, details, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [generateId(), 'panel-admin', 'panel.server-feature.remove', 'server', existing.rows[0].server_id,
-        JSON.stringify({ feature: existing.rows[0].feature }), now()]
+      [generateId(), 'panel-admin', 'panel.server-feature.update', 'server', serverId,
+        JSON.stringify(changes), now()]
     );
 
     res.json({ success: true });
   } catch (error) {
-    logger.error('Failed to remove server feature:', error);
-    res.status(500).json({ error: 'Failed to remove server feature' });
+    logger.error('Failed to update server features:', error);
+    res.status(500).json({ error: 'Failed to update server features' });
+  }
+});
+
+/** DELETE /panel/api/settings/server-features/:serverId — reset features to defaults */
+router.delete('/server-features/:serverId', (req: PanelRequest, res: Response) => {
+  try {
+    const { serverId } = req.params;
+
+    const existing = query('SELECT * FROM server_features WHERE server_id = $1', [serverId]);
+    if (existing.rows.length === 0) {
+      res.status(404).json({ error: 'Server features not found' });
+      return;
+    }
+
+    query('DELETE FROM server_features WHERE server_id = $1', [serverId]);
+
+    query(
+      `INSERT INTO audit_logs (id, user_id, action, target_type, target_id, details, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [generateId(), 'panel-admin', 'panel.server-feature.reset', 'server', serverId,
+        '{}', now()]
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('Failed to reset server features:', error);
+    res.status(500).json({ error: 'Failed to reset server features' });
   }
 });
 

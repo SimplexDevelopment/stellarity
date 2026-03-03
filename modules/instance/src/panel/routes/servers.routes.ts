@@ -25,8 +25,8 @@ router.get('/', (req: PanelRequest, res: Response) => {
     const params: any[] = [];
 
     if (search) {
-      whereClause = 'WHERE s.name LIKE $1 OR s.id LIKE $1';
-      params.push(`%${search}%`);
+      whereClause = 'WHERE s.name LIKE $1 OR s.id LIKE $2';
+      params.push(`%${search}%`, `%${search}%`);
     }
 
     // Count total
