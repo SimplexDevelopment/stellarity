@@ -25,7 +25,7 @@ import reactionRoutes from './routes/reaction.routes.js';
 import threadRoutes from './routes/thread.routes.js';
 import scheduledRoutes from './routes/scheduled.routes.js';
 import encryptionRoutes from './routes/encryption.routes.js';
-import { startPanelServer, stopPanelServer } from './panel/index.js';
+import { createPanelRouter } from './panel/index.js';
 import { ephemeralService } from './services/ephemeral.service.js';
 import { scheduledService } from './services/scheduled.service.js';
 
@@ -140,6 +140,10 @@ async function startInstanceServer() {
   app.use('/api', threadRoutes);
   app.use('/api', scheduledRoutes);
   app.use('/api', encryptionRoutes);
+
+  // ── Management Panel (served at /panel) ─────────────────────────
+  const panelRouter = await createPanelRouter();
+  app.use('/panel', panelRouter);
   
   // Error handling
   app.use(notFoundHandler);
@@ -200,12 +204,10 @@ async function startInstanceServer() {
   logger.info(`   Environment: ${config.nodeEnv}`);
   logger.info(`   Public: ${config.instance.isPublic}`);
   logger.info(`   Central Server: ${config.central.url}`);
+  logger.info(`   Panel: http://localhost:${resolvedPort}/panel`);
   if (resolvedPort !== config.port) {
     logger.info(`   Port ${config.port} was in use — auto-resolved to ${resolvedPort}`);
   }
-
-  // Start management panel server
-  await startPanelServer();
 
   // Start background service loops
   ephemeralService.startCleanupLoop();
@@ -238,7 +240,6 @@ async function startInstanceServer() {
     // Clean up resources sequentially
     ephemeralService.stopCleanupLoop();
     scheduledService.stopDeliveryLoop();
-    await stopPanelServer();
     closeDatabase();
     await closeRedis();
     

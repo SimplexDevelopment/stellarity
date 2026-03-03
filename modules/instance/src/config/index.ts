@@ -82,8 +82,6 @@ export const config = {
 
   // Management Panel
   panel: {
-    port: parseInt(process.env.PANEL_PORT || '3003', 10),
-    bindAddress: process.env.PANEL_BIND_ADDRESS || '127.0.0.1', // localhost-only by default for security
     password: process.env.PANEL_PASSWORD || '', // if empty, auto-generated on first boot
     sessionDuration: parseInt(process.env.PANEL_SESSION_DURATION || '7200', 10), // 2 hours in seconds
   },

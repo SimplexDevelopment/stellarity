@@ -1,30 +1,24 @@
 /**
- * Instance Management Panel — Express Server
+ * Instance Management Panel — Express Router
  *
- * A separate HTTP server running on PANEL_PORT (default 3003) that serves
- * an embedded React SPA for instance owner management. Binds to 127.0.0.1
- * by default so it's only accessible locally (VPS access via SSH tunnel).
+ * Mounted at /panel on the main instance HTTP server. Serves the embedded
+ * React SPA and management API endpoints for instance owners.
  *
- * Routes:
- *   /panel/api/auth/*       — login / verify session
- *   /panel/api/settings     — instance settings CRUD
- *   /panel/api/servers      — server oversight
- *   /panel/api/members      — member management
- *   /panel/api/moderation   — moderation oversight
- *   /panel/api/metrics      — metrics & monitoring
- *   /panel/api/audit-logs   — audit log viewer
- *   /panel/api/database     — database browser & editor
- *   /*                      — static SPA files (panel UI)
+ * Routes (relative to /panel mount):
+ *   /api/auth/*       — login / verify session
+ *   /api/settings     — instance settings CRUD
+ *   /api/servers      — server oversight
+ *   /api/members      — member management
+ *   /api/moderation   — moderation oversight
+ *   /api/metrics      — metrics & monitoring
+ *   /api/audit-logs   — audit log viewer
+ *   /api/database     — database browser & editor
+ *   /*                — static SPA files (panel UI)
  */
-import express from 'express';
-import http from 'http';
-import helmet from 'helmet';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
+import express, { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 
-import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { initializePanelAuth } from './auth.js';
 import { panelAuth } from './middleware.js';
@@ -38,56 +32,25 @@ import metricsRoutes from './routes/metrics.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import databaseRoutes from './routes/database.routes.js';
 
-let panelServer: http.Server | null = null;
-
-export async function startPanelServer(): Promise<http.Server | null> {
+/**
+ * Create and return the panel Express router.
+ * Must be called after initializePanelAuth().
+ *
+ * The router is designed to be mounted at `/panel` on the main instance app,
+ * so all internal paths are relative (e.g. `/api/auth` → `/panel/api/auth`).
+ */
+export async function createPanelRouter(): Promise<Router> {
   // Initialize panel credentials (load or generate passphrase)
   await initializePanelAuth();
 
-  const app = express();
-
-  // CORS — allow same-origin, localhost, and configured panel origins
-  const panelOrigins = (process.env.PANEL_CORS_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-
-  // Security
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        connectSrc: ["'self'", ...(panelOrigins.length > 0 ? panelOrigins : [])],
-        imgSrc: ["'self'", "data:", "https:"],
-      },
-    },
-  }));
-  app.use(cors({
-    origin: (origin, callback) => {
-      // Allow same-origin requests (no origin header) and localhost
-      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        callback(null, true);
-      } else if (panelOrigins.length > 0 && panelOrigins.includes(origin)) {
-        callback(null, true);
-      } else if (config.panel.bindAddress === '0.0.0.0') {
-        // When binding to all interfaces, allow same-origin requests from any host
-        // since the panel UI is served from the same server
-        callback(null, true);
-      } else {
-        callback(new Error('CORS not allowed'));
-      }
-    },
-    credentials: true,
-  }));
-
-  app.use(express.json());
-  app.use(cookieParser());
+  const router = Router();
 
   // Request logging for panel
-  app.use((req, res, next) => {
+  router.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
       const duration = Date.now() - start;
-      logger.debug(`[Panel] ${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+      logger.debug(`[Panel] ${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`);
     });
     next();
   });
@@ -95,19 +58,19 @@ export async function startPanelServer(): Promise<http.Server | null> {
   // ── API Routes ──────────────────────────────────────────────────
 
   // Auth routes (no auth middleware — login/verify are public)
-  app.use('/panel/api/auth', authRoutes);
+  router.use('/api/auth', authRoutes);
 
   // Protected routes — require valid panel session
-  app.use('/panel/api/settings', panelAuth, settingsRoutes);
-  app.use('/panel/api/servers', panelAuth, serversRoutes);
-  app.use('/panel/api/members', panelAuth, membersRoutes);
-  app.use('/panel/api/moderation', panelAuth, moderationRoutes);
-  app.use('/panel/api/metrics', panelAuth, metricsRoutes);
-  app.use('/panel/api/audit-logs', panelAuth, auditRoutes);
-  app.use('/panel/api/database', panelAuth, databaseRoutes);
+  router.use('/api/settings', panelAuth, settingsRoutes);
+  router.use('/api/servers', panelAuth, serversRoutes);
+  router.use('/api/members', panelAuth, membersRoutes);
+  router.use('/api/moderation', panelAuth, moderationRoutes);
+  router.use('/api/metrics', panelAuth, metricsRoutes);
+  router.use('/api/audit-logs', panelAuth, auditRoutes);
+  router.use('/api/database', panelAuth, databaseRoutes);
 
   // Panel health check (no auth)
-  app.get('/panel/api/health', (req, res) => {
+  router.get('/api/health', (req, res) => {
     res.json({ status: 'ok', panel: true });
   });
 
@@ -117,11 +80,11 @@ export async function startPanelServer(): Promise<http.Server | null> {
   const panelUIPath = path.resolve(__dirname, '../../dist/panel-ui');
 
   if (fs.existsSync(panelUIPath)) {
-    app.use(express.static(panelUIPath));
+    router.use(express.static(panelUIPath));
 
     // SPA fallback — serve index.html for all non-API routes
-    app.get('*', (req, res) => {
-      if (req.path.startsWith('/panel/api')) {
+    router.get('*', (req, res) => {
+      if (req.path.startsWith('/api')) {
         res.status(404).json({ error: 'Not found' });
         return;
       }
@@ -129,8 +92,8 @@ export async function startPanelServer(): Promise<http.Server | null> {
     });
   } else {
     // Panel UI not built — show a helpful message
-    app.get('*', (req, res) => {
-      if (req.path.startsWith('/panel/api')) {
+    router.get('*', (req, res) => {
+      if (req.path.startsWith('/api')) {
         res.status(404).json({ error: 'Not found' });
         return;
       }
@@ -140,7 +103,7 @@ export async function startPanelServer(): Promise<http.Server | null> {
           <body style="background:#0a0a0c;color:#d4a843;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
             <div style="text-align:center">
               <h1>PANEL UI NOT BUILT</h1>
-              <p>Run <code>npm run build:panel</code> in the instance module to build the management panel.</p>
+              <p>Run <code>bun run build:panel</code> in the instance module to build the management panel.</p>
               <p>The API is available at <code>/panel/api/*</code></p>
             </div>
           </body>
@@ -149,37 +112,6 @@ export async function startPanelServer(): Promise<http.Server | null> {
     });
   }
 
-  // ── Start Server ────────────────────────────────────────────────
-
-  const server = http.createServer(app);
-  const { port, bindAddress } = config.panel;
-
-  return new Promise((resolve) => {
-    server.listen(port, bindAddress, () => {
-      logger.info(`📋 Instance Management Panel running on ${bindAddress}:${port}`);
-
-      if (bindAddress === '127.0.0.1') {
-        logger.info(`   Panel is localhost-only. Access via browser: http://localhost:${port}`);
-        logger.info(`   For VPS access, use SSH tunnel: ssh -L ${port}:localhost:${port} user@your-server`);
-      } else {
-        logger.info(`   Panel is accessible on ${bindAddress}:${port}`);
-        logger.warn('   ⚠ Panel is NOT restricted to localhost — ensure it is behind a firewall or reverse proxy');
-      }
-
-      panelServer = server;
-      resolve(server);
-    });
-  });
-}
-
-export async function stopPanelServer(): Promise<void> {
-  if (panelServer) {
-    return new Promise((resolve) => {
-      panelServer!.close(() => {
-        logger.info('Panel server closed');
-        panelServer = null;
-        resolve();
-      });
-    });
-  }
+  logger.info('📋 Panel router created — mounted at /panel');
+  return router;
 }

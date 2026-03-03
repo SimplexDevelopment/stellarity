@@ -5,7 +5,7 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [react()],
   root: '.',
-  base: '/',
+  base: '/panel/',
   build: {
     outDir: '../dist/panel-ui',
     emptyOutDir: true,
@@ -17,10 +17,10 @@ export default defineConfig({
     },
   },
   server: {
-    // Dev proxy to the panel API
+    // Dev proxy to the instance server (panel is mounted at /panel)
     proxy: {
       '/panel/api': {
-        target: 'http://localhost:3003',
+        target: 'http://localhost:4150',
         changeOrigin: true,
       },
     },
