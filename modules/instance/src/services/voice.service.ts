@@ -73,11 +73,11 @@ class VoiceService {
     
     // Update voice state in database
     query(
-      `INSERT INTO voice_states (user_id, channel_id, server_id, joined_at)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO voice_states (id, user_id, channel_id, server_id, joined_at)
+       VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (user_id) DO UPDATE
-       SET channel_id = excluded.channel_id, server_id = excluded.server_id, joined_at = $4`,
-      [userId, channelId, serverId, now()]
+       SET channel_id = excluded.channel_id, server_id = excluded.server_id, joined_at = $5`,
+      [crypto.randomUUID(), userId, channelId, serverId, now()]
     );
     
     // Add to Redis for real-time tracking
