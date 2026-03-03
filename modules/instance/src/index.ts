@@ -264,7 +264,7 @@ async function registerWithCentral(instanceId: string): Promise<void> {
         instanceId,
         instanceName: info.name,
         description: info.description,
-        url: `http://localhost:${config.port}`, // TODO: use actual public URL
+        url: config.publicUrl,
         publicKey: info.publicKey,
         memberCount: info.memberCount,
         maxMembers: info.maxMembers,

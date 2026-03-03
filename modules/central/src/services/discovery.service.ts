@@ -57,18 +57,74 @@ class DiscoveryService {
     return { instanceId: result.rows[0].id };
   }
 
-  /** Process a heartbeat from an instance */
-  async heartbeat(instanceId: string, memberCount: number, status: 'online' | 'maintenance'): Promise<void> {
+  /** Process a heartbeat from an instance — upserts by instance_id */
+  async heartbeat(data: {
+    instanceId: string;
+    instanceName?: string;
+    description?: string;
+    url?: string;
+    publicKey?: string;
+    memberCount?: number;
+    maxMembers?: number;
+    tags?: string[];
+    region?: string;
+    iconUrl?: string;
+    status?: 'online' | 'maintenance';
+  }): Promise<void> {
+    const {
+      instanceId,
+      instanceName,
+      description,
+      url,
+      publicKey,
+      memberCount = 0,
+      maxMembers = 500,
+      tags,
+      region,
+      iconUrl,
+      status = 'online',
+    } = data;
+
+    // Try update first (fast path for recurring heartbeats)
     const result = await query(
       `UPDATE instance_registry
        SET member_count = $1, last_heartbeat_at = NOW()
-       WHERE id = $2`,
+       WHERE instance_id = $2`,
       [memberCount, instanceId]
     );
 
-    if (result.rowCount === 0) {
-      throw new Error('Instance not found');
+    if (result.rowCount && result.rowCount > 0) {
+      return; // Existing instance updated
     }
+
+    // First heartbeat from this instance — insert it
+    if (!instanceName || !publicKey) {
+      // Initial heartbeat must include full info so we can create the entry
+      throw new Error('First heartbeat must include instanceName and publicKey');
+    }
+
+    await query(
+      `INSERT INTO instance_registry
+         (instance_id, name, description, url, public_key, tags, region, icon_url, max_members, member_count, last_heartbeat_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+       ON CONFLICT (instance_id) DO UPDATE SET
+         member_count = EXCLUDED.member_count,
+         last_heartbeat_at = NOW()`,
+      [
+        instanceId,
+        instanceName,
+        description || null,
+        url || null,
+        publicKey,
+        JSON.stringify(tags || []),
+        region || null,
+        iconUrl || null,
+        maxMembers,
+        memberCount,
+      ]
+    );
+
+    logger.info(`Instance auto-registered via heartbeat: ${instanceName} (${instanceId})`);
   }
 
   /** Search and browse public instances */

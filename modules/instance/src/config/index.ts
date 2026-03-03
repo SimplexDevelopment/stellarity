@@ -8,6 +8,7 @@ export const config = {
   port: parseInt(process.env.PORT || '4150', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   isDev: process.env.NODE_ENV !== 'production',
+  publicUrl: process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || '4150'}`,
 
   // Instance Identity
   instance: {

@@ -292,7 +292,32 @@ const migrations: Migration[] = [
       `);
     },
   },
-  // Future migrations go here as { version: 3, name: '...', up() { ... } }
+  {
+    version: 3,
+    name: 'add_instance_id_column',
+    async up() {
+      // Add a self-reported instance_id so instances can register/heartbeat
+      // autonomously using their own identity UUID (from instance-identity.json).
+      // The existing `id` column remains the internal primary key.
+      await query(`
+        ALTER TABLE instance_registry
+          ADD COLUMN IF NOT EXISTS instance_id VARCHAR(64) UNIQUE;
+      `);
+
+      await query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_instance_registry_instance_id
+          ON instance_registry(instance_id) WHERE instance_id IS NOT NULL;
+      `);
+
+      // Make owner_id nullable so headless instance heartbeats can register
+      // without an authenticated user. The owner can be claimed later.
+      await query(`
+        ALTER TABLE instance_registry
+          ALTER COLUMN owner_id DROP NOT NULL;
+      `);
+    },
+  },
+  // Future migrations go here as { version: 4, name: '...', up() { ... } }
 ];
 
 export async function migrate(): Promise<void> {

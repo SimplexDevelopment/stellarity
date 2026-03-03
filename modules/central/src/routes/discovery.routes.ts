@@ -77,21 +77,21 @@ router.post('/register', authenticate, validate(instanceRegistrationSchema), asy
 
 // ── Heartbeat ────────────────────────────────────────────────────────
 
-/** POST /api/discovery/heartbeat — Instance heartbeat */
+/** POST /api/discovery/heartbeat — Instance heartbeat (auto-registers on first call) */
 router.post('/heartbeat', async (req: Request, res: Response) => {
   try {
-    const { instanceId, memberCount, status } = req.body;
+    const { instanceId } = req.body;
 
     if (!instanceId) {
       res.status(400).json({ error: 'instanceId is required' });
       return;
     }
 
-    await discoveryService.heartbeat(instanceId, memberCount || 0, status || 'online');
+    await discoveryService.heartbeat(req.body);
     res.json({ acknowledged: true });
   } catch (error: any) {
-    if (error.message === 'Instance not found') {
-      res.status(404).json({ error: error.message });
+    if (error.message === 'First heartbeat must include instanceName and publicKey') {
+      res.status(400).json({ error: error.message });
     } else {
       logger.error('Heartbeat error:', error);
       res.status(500).json({ error: 'Heartbeat failed' });
