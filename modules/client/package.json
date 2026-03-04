@@ -9,10 +9,10 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "npm run build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux",
+    "package": "bun run ../../scripts/package-desktop.ts client",
+    "package:win": "bun run ../../scripts/package-desktop.ts client --win",
+    "package:mac": "bun run ../../scripts/package-desktop.ts client --mac",
+    "package:linux": "bun run ../../scripts/package-desktop.ts client --linux",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
@@ -39,24 +39,55 @@
   "build": {
     "appId": "com.stellarity.app",
     "productName": "Stellarity",
+    "copyright": "Copyright © 2026 Stellarity",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "out/**/*",
+      "!node_modules/**/*"
+    ],
+    "extraMetadata": {
+      "main": "./out/main/index.js"
     },
     "win": {
-      "target": ["nsis", "portable"],
-      "icon": "resources/icon.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "${productName}-${version}-Setup.${ext}"
     },
     "mac": {
       "target": ["dmg"],
-      "icon": "resources/icon.icns"
+      "artifactName": "${productName}-${version}-macOS.${ext}"
     },
     "linux": {
       "target": ["AppImage", "deb"],
-      "icon": "resources/icon.png"
+      "artifactName": "${productName}-${version}-linux.${ext}",
+      "category": "Network"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Stellarity",
+      "uninstallDisplayName": "Stellarity",
+      "deleteAppDataOnUninstall": false,
+      "license": "../../LICENSE",
+      "include": "resources/nsis/installer.nsh"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Portable.${ext}"
     }
   }
 }

@@ -7,11 +7,17 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "cap:init:android": "cap add android",
+    "cap:init:ios": "cap add ios",
     "cap:sync": "cap sync",
     "cap:open:android": "cap open android",
     "cap:open:ios": "cap open ios",
     "cap:run:android": "cap run android",
-    "cap:run:ios": "cap run ios"
+    "cap:run:ios": "cap run ios",
+    "package:android": "bun run build && cap sync android && cd android && ./gradlew assembleRelease",
+    "package:android:debug": "bun run build && cap sync android && cd android && ./gradlew assembleDebug",
+    "package:android:bundle": "bun run build && cap sync android && cd android && ./gradlew bundleRelease",
+    "package:ios": "bun run build && cap sync ios && cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath build/App.xcarchive archive"
   },
   "dependencies": {
     "@capacitor/app": "^6.0.0",
